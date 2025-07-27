@@ -17,21 +17,21 @@ Node.__index = Node
 ---@param curhead? boolean Whether this is the current head (default: false)
 ---@return Node node The new node
 function Node:new(n, parent, time, curhead)
-  local node = {
-    n = n,
-    parent = parent,
-    children = {},
-    time = time,
-    curhead = curhead or false
-  }
-  setmetatable(node, self)
-  return node
+    local node = {
+        n = n,
+        parent = parent,
+        children = {},
+        time = time,
+        curhead = curhead or false,
+    }
+    setmetatable(node, self)
+    return node
 end
 
 -- Add a child node to this node
 ---@param child Node The child node to add
 function Node:add_child(child)
-  table.insert(self.children, child)
+    table.insert(self.children, child)
 end
 
 -- Export the Node class

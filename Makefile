@@ -1,6 +1,6 @@
 # Makefile for nvim-mundo
 
-.PHONY: test test-unit test-integration test-config test-utils test-node test-tree test-graph clean help
+.PHONY: test test-unit test-integration test-config test-utils test-node test-tree test-graph clean format help
 
 # Default target
 help:
@@ -13,6 +13,7 @@ help:
 	@echo "  test-node      - Run node module tests"
 	@echo "  test-tree      - Run tree module tests"
 	@echo "  test-graph     - Run graph module tests"
+	@echo "  format         - Format all Lua files with stylua"
 	@echo "  clean          - Clean test artifacts"
 
 # Variables
@@ -58,6 +59,11 @@ test-tree:
 test-graph:
 	@echo "Running graph module tests..."
 	@LUA_PATH="$(LUA_PATH)" $(NVIM_CMD) "lua require('tests.run_tests')" -c "qa!" tests.test_graph
+
+# Format all Lua files with stylua
+format:
+	@echo "Formatting Lua files with stylua..."
+	@stylua --config-path .stylua.toml lua/ tests/ plugin/ *.lua
 
 # Clean test artifacts
 clean:

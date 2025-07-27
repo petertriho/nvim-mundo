@@ -66,6 +66,7 @@ Add the plugin directory to your plugin manager configuration.
 
 ```lua
 require("mundo").setup({
+    tree_order = "desc", -- Default tree order: 'asc' or 'desc'
     -- Window positioning
     right = false, -- Open on right side
     preview_bottom = false, -- Preview window at bottom
