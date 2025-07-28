@@ -354,10 +354,11 @@ function M.return_to_buffer()
     end
 end
 
--- Setup autocommands
+-- Setup autocommands when Mundo is opened
 function M.setup_autocmds()
     local group = api.nvim_create_augroup("Mundo", { clear = true })
 
+    -- Always-active events that just mark data as outdated
     api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
         group = group,
         callback = function()
@@ -367,8 +368,32 @@ function M.setup_autocmds()
             end
         end,
     })
+
+    -- Configurable autorefresh on buffer events (only when Mundo is visible)
+    local cfg = config.get()
+    if cfg.autorefresh and #cfg.autorefresh_events > 0 then
+        api.nvim_create_autocmd(cfg.autorefresh_events, {
+            group = group,
+            callback = function()
+                if state.nodes_data and utils.is_mundo_visible() then
+                    state.nodes_data.outdated = true
+                    state.preview_outdated = true
+                    -- Auto-render since Mundo is currently visible
+                    M.render_graph()
+                    if cfg.auto_preview then
+                        M.render_preview()
+                    end
+                end
+            end,
+        })
+    end
 end
 
+-- Clear autocommands when Mundo is closed
+function M.clear_autocmds()
+    -- Only clear if the group exists
+    pcall(api.nvim_clear_autocmds, { group = "Mundo" })
+end
 -- Clear state
 function M.clear_state()
     state.target_buffer = nil

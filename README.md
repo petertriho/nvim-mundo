@@ -22,7 +22,7 @@ A Lua rewrite of the [vim-mundo](https://github.com/simnalamburt/vim-mundo) plug
 
 ```lua
 {
-  dir = "~/.config/nvim/plugins/nvim-mundo", -- Local plugin
+  "petertriho/nvim-mundo",
   cmd = { "MundoToggle", "MundoShow", "MundoHide" },
   keys = {
     { "<leader>u", "<CMD>MundoToggle<CR>", desc = "Toggle Mundo Undo Tree" },
@@ -71,7 +71,7 @@ nvim-mundo supports the same configuration variables as the original vim-mundo v
 ```vim
 " Window layout
 let g:mundo_width = 45                     " Width of the Mundo window
-let g:mundo_preview_height = 15            " Height of the preview window  
+let g:mundo_preview_height = 15            " Height of the preview window
 let g:mundo_preview_bottom = 0             " Show preview at bottom (1) or right (0)
 let g:mundo_right = 0                      " Show Mundo on right side (1) or left (0)
 
@@ -99,7 +99,7 @@ let g:mundo_tree_statusline = "Mundo"             " Statusline for tree window
 " Custom mappings (dictionary)
 let g:mundo_mappings = {
     \ '<CR>': 'preview',
-    \ 'o': 'preview', 
+    \ 'o': 'preview',
     \ 'J': 'move_older_write',
     \ 'K': 'move_newer_write',
     \ 'q': 'quit'
@@ -110,7 +110,7 @@ let g:mundo_mappings = {
 
 ```lua
 require("mundo").setup({
-    -- Window positioning  
+    -- Window positioning
     width = 45,                    -- Graph window width
     preview_height = 15,           -- Preview window height
     preview_bottom = false,        -- Preview window at bottom

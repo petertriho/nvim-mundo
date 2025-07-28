@@ -101,3 +101,41 @@ test.it("should preserve existing mappings when adding move mappings", function(
     test.assert.equals(result.mappings["j"], "move_older", "should add move mappings")
     test.assert.equals(result.mappings["k"], "move_newer", "should add move mappings")
 end)
+
+test.it("should have autorefresh configuration options", function()
+    local result = config.setup()
+    
+    test.assert.equals(result.autorefresh, true, "autorefresh should default to true")
+    test.assert.is_type(result.autorefresh_events, "table", "autorefresh_events should be a table")
+    test.assert.equals(#result.autorefresh_events, 3, "should have 3 default autorefresh events")
+    
+    -- Check that default events are present
+    local events = result.autorefresh_events
+    local has_bufread = false
+    local has_bufnewfile = false
+    local has_bufwritepost = false
+    
+    for _, event in ipairs(events) do
+        if event == "BufRead" then has_bufread = true end
+        if event == "BufNewFile" then has_bufnewfile = true end
+        if event == "BufWritePost" then has_bufwritepost = true end
+    end
+    
+    test.assert.is_true(has_bufread, "should include BufRead event")
+    test.assert.is_true(has_bufnewfile, "should include BufNewFile event")  
+    test.assert.is_true(has_bufwritepost, "should include BufWritePost event")
+end)
+
+test.it("should allow customizing autorefresh settings", function()
+    local user_opts = {
+        autorefresh = false,
+        autorefresh_events = { "BufWritePost", "InsertLeave" },
+    }
+
+    local result = config.setup(user_opts)
+
+    test.assert.equals(result.autorefresh, false, "should use custom autorefresh setting")
+    test.assert.equals(#result.autorefresh_events, 2, "should use custom autorefresh events")
+    test.assert.equals(result.autorefresh_events[1], "BufWritePost", "should include first custom event")
+    test.assert.equals(result.autorefresh_events[2], "InsertLeave", "should include second custom event")
+end)

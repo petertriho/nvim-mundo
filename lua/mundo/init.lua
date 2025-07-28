@@ -12,7 +12,7 @@ local core = require("mundo.core")
 ---@param opts? MundoConfig User configuration options
 function M.setup(opts)
     config.setup(opts)
-    core.setup_autocmds()
+    -- Don't setup autocmds here - they'll be created when Mundo opens
 end
 
 -- Toggle Mundo visibility
@@ -37,6 +37,9 @@ function M.show()
 
     -- Set state after closing
     core.set_target_buffer(target_buffer)
+
+    -- Setup autocommands when opening Mundo
+    core.setup_autocmds()
 
     -- Save settings
     local saved_splitbelow = vim.o.splitbelow
@@ -104,6 +107,7 @@ end
 -- Close Mundo windows and clean up
 function M.close()
     window.close_windows()
+    core.clear_autocmds() -- Clear autocommands when closing
     core.clear_state()
 end
 

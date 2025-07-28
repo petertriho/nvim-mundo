@@ -171,3 +171,48 @@ test.it("should handle plugin API functions", function()
     local success = pcall(mundo.setup, { width = 50 })
     test.assert.is_true(success, "setup should not throw with valid config")
 end)
+
+test.it("should manage autocommands lifecycle correctly", function()
+    -- Track autocommand operations
+    local autocmd_create_count = 0
+    local autocmd_cleared = false
+    local augroup_id = 1
+
+    -- Mock vim API functions
+    _G.vim.api.nvim_create_augroup = function(name, opts)
+        test.assert.equals(name, "Mundo", "should create Mundo augroup")
+        test.assert.is_true(opts.clear, "should clear existing augroup")
+        return augroup_id
+    end
+
+    _G.vim.api.nvim_create_autocmd = function(events, opts)
+        autocmd_create_count = autocmd_create_count + 1
+        test.assert.equals(opts.group, augroup_id, "should use Mundo augroup")
+        test.assert.is_type(opts.callback, "function", "should have callback function")
+    end
+
+    _G.vim.api.nvim_clear_autocmds = function(opts)
+        autocmd_cleared = true
+        test.assert.equals(opts.group, "Mundo", "should clear Mundo augroup")
+    end
+
+    -- Clear any cached modules to ensure clean state
+    package.loaded["mundo.config"] = nil
+    package.loaded["mundo.core"] = nil
+    
+    -- Load modules and setup config (required for core to work properly)
+    local config = require("mundo.config")
+    config.setup({}) -- Initialize with defaults
+    local core = require("mundo.core")
+
+    -- Test setup_autocmds - should create at least one autocmd (for TextChanged, InsertLeave)
+    -- and potentially a second one if autorefresh is enabled
+    autocmd_create_count = 0
+    core.setup_autocmds()
+    test.assert.is_true(autocmd_create_count > 0, "should create at least one autocommand when setup")
+
+    -- Test clear_autocmds
+    autocmd_cleared = false
+    core.clear_autocmds()
+    test.assert.is_true(autocmd_cleared, "should clear autocommands when closed")
+end)

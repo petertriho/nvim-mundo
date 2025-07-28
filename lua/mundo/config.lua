@@ -23,6 +23,8 @@ local M = {}
 ---@field map_move_newer string Key to move to newer undo state
 ---@field map_move_older string Key to move to older undo state
 ---@field map_up_down boolean Use arrow keys for navigation
+---@field autorefresh boolean Enable automatic tree refresh on buffer events (mundo_autorefresh)
+---@field autorefresh_events table<string> List of events that trigger autorefresh (mundo_autorefresh_events)
 
 -- Default configuration
 ---@type MundoConfig
@@ -66,6 +68,8 @@ M.defaults = {
     map_move_newer = "k",
     map_move_older = "j",
     map_up_down = true,
+    autorefresh = true,
+    autorefresh_events = { "BufRead", "BufNewFile", "BufWritePost" },
 }
 
 -- Current configuration (will be merged with user options)
@@ -102,6 +106,8 @@ function M.setup(opts)
         mundo_inline_undo = "inline_undo",
         mundo_return_on_revert = "return_on_revert",
         mundo_header = "header",
+        mundo_autorefresh = "autorefresh",
+        mundo_autorefresh_events = "autorefresh_events",
     }
     
     -- Apply vim.g settings with highest precedence
