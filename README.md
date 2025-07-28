@@ -64,37 +64,83 @@ Add the plugin directory to your plugin manager configuration.
 
 ## Configuration
 
+nvim-mundo supports the same configuration variables as the original vim-mundo via `vim.g` variables, plus Lua-style setup configuration:
+
+### Using vim.g variables (original vim-mundo compatibility)
+
+```vim
+" Window layout
+let g:mundo_width = 45                     " Width of the Mundo window
+let g:mundo_preview_height = 15            " Height of the preview window  
+let g:mundo_preview_bottom = 0             " Show preview at bottom (1) or right (0)
+let g:mundo_right = 0                      " Show Mundo on right side (1) or left (0)
+
+" Display options
+let g:mundo_help = 0                       " Show help by default (1) or not (0)
+let g:mundo_disable = 0                    " Disable the plugin (1) or enable (0)
+let g:mundo_header = 1                     " Show header in graph window (1) or not (0)
+let g:mundo_verbose_graph = 1              " Show detailed graph (1) or simple (0)
+let g:mundo_mirror_graph = 0               " Mirror the graph horizontally (1) or not (0)
+let g:mundo_inline_undo = 0                " Show inline diffs in graph (1) or not (0)
+
+" Behavior
+let g:mundo_close_on_revert = 0            " Close Mundo after reverting (1) or not (0)
+let g:mundo_return_on_revert = 1           " Return to original buffer after revert (1) or not (0)
+let g:mundo_auto_preview = 1               " Auto-update preview when moving (1) or not (0)
+let g:mundo_auto_preview_delay = 250       " Delay for auto-preview in milliseconds
+
+" Playback and timing
+let g:mundo_playback_delay = 60            " Delay between playback steps in milliseconds
+
+" Status lines
+let g:mundo_preview_statusline = "Mundo Preview"  " Statusline for preview window
+let g:mundo_tree_statusline = "Mundo"             " Statusline for tree window
+
+" Custom mappings (dictionary)
+let g:mundo_mappings = {
+    \ '<CR>': 'preview',
+    \ 'o': 'preview', 
+    \ 'J': 'move_older_write',
+    \ 'K': 'move_newer_write',
+    \ 'q': 'quit'
+    \ }
+```
+
+### Using Lua setup (modern Neovim style)
+
 ```lua
 require("mundo").setup({
-    tree_order = "desc", -- Default tree order: 'asc' or 'desc'
-    -- Window positioning
-    right = false, -- Open on right side
-    preview_bottom = false, -- Preview window at bottom
+    -- Window positioning  
+    width = 45,                    -- Graph window width
+    preview_height = 15,           -- Preview window height
+    preview_bottom = false,        -- Preview window at bottom
+    right = false,                 -- Open on right side
 
-    -- Window sizing
-    width = 45, -- Graph window width
-    preview_height = 15, -- Preview window height
+    -- Display options
+    help = false,                  -- Show help by default
+    disable = false,               -- Disable the plugin
+    header = true,                 -- Show header
+    verbose_graph = true,          -- Show detailed graph
+    mirror_graph = false,          -- Mirror the graph horizontally
+    inline_undo = false,           -- Show inline diffs
 
     -- Behavior
-    auto_preview = true, -- Auto-update preview
-    auto_preview_delay = 250, -- Delay for auto-preview (ms)
-    close_on_revert = false, -- Close after reverting
-    return_on_revert = true, -- Return to original buffer after revert
-
-    -- Display
-    verbose_graph = true, -- Show detailed graph
-    mirror_graph = false, -- Mirror the graph horizontally
-    inline_undo = false, -- Show inline diffs
-    help = false, -- Show help by default
-    header = true, -- Show header
-
-    -- Navigation
-    map_move_newer = "k", -- Key to move to newer undo
-    map_move_older = "j", -- Key to move to older undo
-    map_up_down = true, -- Use arrow keys for navigation
+    close_on_revert = false,       -- Close after reverting
+    return_on_revert = true,       -- Return to original buffer after revert
+    auto_preview = true,           -- Auto-update preview
+    auto_preview_delay = 250,      -- Delay for auto-preview (ms)
 
     -- Playback
-    playback_delay = 60, -- Delay between playback steps (ms)
+    playback_delay = 60,           -- Delay between playback steps (ms)
+
+    -- Status lines
+    preview_statusline = "Mundo Preview",  -- Preview window statusline
+    tree_statusline = "Mundo",             -- Tree window statusline
+
+    -- Navigation (internal settings)
+    map_move_newer = "k",          -- Key to move to newer undo
+    map_move_older = "j",          -- Key to move to older undo
+    map_up_down = true,            -- Use arrow keys for navigation
 
     -- Custom mappings (optional)
     mappings = {
@@ -114,6 +160,15 @@ require("mundo").setup({
     },
 })
 ```
+
+### Configuration precedence
+
+Configuration is applied in this order (later overrides earlier):
+1. Default values
+2. Lua `setup()` options (for modern Neovim configuration)
+3. `vim.g` variables (highest precedence, matching original vim-mundo behavior)
+
+This allows you to set baseline configuration with `setup()` and override specific options with `vim.g` variables, just like the original vim-mundo plugin.
 
 ## Differences from vim-mundo
 
@@ -168,48 +223,9 @@ mundo.diff() -- Show diff in split
 - **Type annotations**: Added comprehensive lua-language-server type annotations for better IDE support
 - **Unit tests**: Comprehensive test suite with 49+ tests covering all modules
 
-## Architecture
-
-The plugin is organized into focused modules:
-
-- **`config.lua`** (67 lines): Configuration management and defaults
-- **`utils.lua`** (118 lines): Utility functions and buffer operations
-- **`node.lua`** (26 lines): Undo tree node structure
-- **`tree.lua`** (333 lines): Tree data management and LCS-based diff algorithms
-- **`graph.lua`** (131 lines): Graph rendering and formatting logic
-- **`window.lua`** (204 lines): Window management and UI setup
-- **`core.lua`** (353 lines): Core functionality (navigation, preview, etc.)
-- **`init.lua`** (133 lines): Main API and public interface
-
-This modular structure makes the codebase easier to:
-
-- **Understand**: Each module has a single responsibility
-- **Maintain**: Changes are isolated to specific concerns
-- **Test**: Individual components can be tested separately
-- **Extend**: New features can be added without affecting other modules
-- **Develop**: Full type annotations provide IntelliSense and error checking in supported editors
-- **Test**: Comprehensive unit tests ensure reliability and catch regressions
-
-## Type Safety
-
-The plugin includes comprehensive type annotations compatible with lua-language-server:
-
-- **@class definitions**: `MundoConfig`, `Node`, `NodesData`, `GraphLine`, etc.
-- **@param annotations**: Parameter types and descriptions for all functions
-- **@return annotations**: Return type information
-- **@field annotations**: Class property definitions
-- **Optional types**: Proper handling of nullable values with `?` syntax
-
-This provides excellent IDE support with:
-
-- Auto-completion for configuration options
-- Parameter hints and validation
-- Return type inference
-- Error detection for type mismatches
-
 ## Testing
 
-The plugin includes a comprehensive test suite with 49+ tests covering all modules:
+The plugin includes a comprehensive test suite with tests covering all modules:
 
 ### Running Tests
 
@@ -221,11 +237,11 @@ nvim --headless -l test.lua
 make test
 
 # Run specific test modules
-make test-config    # Config module tests
-make test-utils     # Utils module tests
-make test-node      # Node module tests
-make test-tree      # Tree module tests
-make test-graph     # Graph module tests
+make test-config      # Config module tests
+make test-utils       # Utils module tests
+make test-node        # Node module tests
+make test-tree        # Tree module tests
+make test-graph       # Graph module tests
 make test-integration # Integration tests
 ```
 

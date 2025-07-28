@@ -1,5 +1,5 @@
 -- Simple test runner for nvim-mundo
--- Run with: nvim --headless -l test.lua
+-- Run with: line1nvim --headless -l test.lua
 
 -- Setup paths
 package.path = package.path .. ";./lua/?.lua;./tests/?.lua"

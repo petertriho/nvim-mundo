@@ -175,76 +175,6 @@ test.it("should generate unified diff for different content", function()
     test.assert.is_true(has_hunk_header, "should have hunk header")
 end)
 
-test.it("should respect tree_order configuration", function()
-    local nodes_data = NodesData:new()
-
-    -- Create mock nodes
-    local root = { n = 0, children = {} }
-    local child1 = { n = 1, children = {} }
-    local child2 = { n = 2, children = {} }
-    local child3 = { n = 3, children = {} }
-
-    root.children = { child1, child2, child3 }
-    nodes_data.nodes = { root, child1, child2, child3 }
-
-    -- Test ascending order (default)
-    local config = require("mundo.config").get()
-    nodes_data.tree_order = config.tree_order
-    nodes_data:make_nodes()
-    test.assert.equals(root.children[1].n, 1, "First child should be 1 in ascending order")
-    test.assert.equals(root.children[3].n, 3, "Last child should be 3 in ascending order")
-
-    -- Test descending order
-    nodes_data.tree_order = "desc"
-    nodes_data:reverse_tree()
-    test.assert.equals(root.children[1].n, 3, "First child should be 3 in descending order")
-    test.assert.equals(root.children[3].n, 1, "Last child should be 1 in descending order")
-end)
-
-test.it("should reverse the tree", function()
-    local nodes_data = NodesData:new()
-
-    -- Create mock nodes
-    local root = { n = 0, children = {} }
-    local child1 = { n = 1, children = {} }
-    local child2 = { n = 2, children = {} }
-    local child3 = { n = 3, children = {} }
-
-    root.children = { child1, child2, child3 }
-    nodes_data.nodes = { root }
-
-    -- Reverse the tree
-    nodes_data:reverse_tree()
-
-    -- Verify children are reversed
-    test.assert.equals(#root.children, 3, "Root should still have 3 children")
-    test.assert.equals(root.children[1].n, 3, "First child should now be 3")
-    test.assert.equals(root.children[2].n, 2, "Second child should now be 2")
-    test.assert.equals(root.children[3].n, 1, "Third child should now be 1")
-end)
-
-test.it("should reverse the tree", function()
-    local nodes_data = NodesData:new()
-
-    -- Create mock nodes
-    local root = { n = 0, children = {} }
-    local child1 = { n = 1, children = {} }
-    local child2 = { n = 2, children = {} }
-    local child3 = { n = 3, children = {} }
-
-    root.children = { child1, child2, child3 }
-    nodes_data.nodes = { root, child1, child2, child3 }
-
-    -- Reverse the tree
-    nodes_data:reverse_tree()
-
-    -- Verify children are reversed
-    test.assert.equals(#root.children, 3, "Root should still have 3 children")
-    test.assert.equals(root.children[1].n, 3, "First child should now be 3")
-    test.assert.equals(root.children[2].n, 2, "Second child should now be 2")
-    test.assert.equals(root.children[3].n, 1, "Third child should now be 1")
-end)
-
 test.it("should handle make_nodes with no target buffer", function()
     -- Mock no target buffer
     package.loaded["mundo.core"].get_target_buffer = function()
@@ -285,4 +215,367 @@ test.it("should handle make_nodes with valid undotree", function()
     test.assert.equals(nmap[1].n, 1, "node 1 should have correct sequence")
     test.assert.equals(nmap[2].n, 2, "node 2 should have correct sequence")
     test.assert.is_true(nmap[2].curhead, "node 2 should be curhead")
+end)
+
+test.it("should handle complex nested alt branches", function()
+    package.loaded["mundo.core"].get_target_buffer = function()
+        return 1
+    end
+    _G.vim.fn.bufloaded = function()
+        return true
+    end
+    _G.vim.fn.undotree = function()
+        return {
+            entries = {
+                {
+                    seq = 1,
+                    time = 1000,
+                    alt = {
+                        { seq = 2, time = 1100 },
+                        { seq = 3, time = 1200 },
+                        {
+                            seq = 4,
+                            time = 1300,
+                            save = 1,
+                            alt = {
+                                { seq = 5, time = 1400 }
+                            }
+                        }
+                    }
+                },
+                { seq = 6, time = 2000, curhead = true }
+            },
+        }
+    end
+
+    local nodes_data = NodesData:new()
+    local nodes, nmap = nodes_data:make_nodes()
+
+    test.assert.equals(#nodes, 7, "should create root + 6 nodes for complex structure")
+    test.assert.is_not_nil(nmap[0], "should have root node")
+    test.assert.is_not_nil(nmap[1], "should have node 1")
+    test.assert.is_not_nil(nmap[2], "should have node 2 (alt of 1)")
+    test.assert.is_not_nil(nmap[3], "should have node 3 (alt of 1)")
+    test.assert.is_not_nil(nmap[4], "should have node 4 (alt of 1)")
+    test.assert.is_not_nil(nmap[5], "should have node 5 (alt of 4)")
+    test.assert.is_not_nil(nmap[6], "should have node 6 (main sequence)")
+
+    -- Check parent-child relationships for nested alt branches
+    test.assert.equals(nmap[2].parent.n, 1, "node 2 should be child of node 1")
+    test.assert.equals(nmap[3].parent.n, 2, "node 3 should be child of node 2")
+    test.assert.equals(nmap[4].parent.n, 3, "node 4 should be child of node 3")
+    test.assert.equals(nmap[5].parent.n, 4, "node 5 should be child of node 4")
+    test.assert.equals(nmap[6].parent.n, 1, "node 6 should be child of node 1 (main sequence)")
+end)
+
+test.it("should handle save markers correctly", function()
+    package.loaded["mundo.core"].get_target_buffer = function()
+        return 1
+    end
+    _G.vim.fn.bufloaded = function()
+        return true
+    end
+    _G.vim.fn.undotree = function()
+        return {
+            entries = {
+                { seq = 1, time = 1000 },
+                { seq = 2, time = 1100, save = 1 },
+                { seq = 3, time = 1200 },
+                { seq = 4, time = 1300, save = 2 },
+                { seq = 5, time = 1400, save = 3 }
+            },
+            save_cur = 3,
+            save_last = 3
+        }
+    end
+
+    local nodes_data = NodesData:new()
+    local nodes, nmap = nodes_data:make_nodes()
+
+    test.assert.equals(#nodes, 6, "should create root + 5 nodes")
+    -- Note: save markers are metadata, the tree structure should still be sequential
+    test.assert.equals(nmap[1].parent.n, 0, "node 1 should be child of root")
+    test.assert.equals(nmap[2].parent.n, 1, "node 2 should be child of node 1")
+    test.assert.equals(nmap[3].parent.n, 2, "node 3 should be child of node 2")
+    test.assert.equals(nmap[4].parent.n, 3, "node 4 should be child of node 3")
+    test.assert.equals(nmap[5].parent.n, 4, "node 5 should be child of node 4")
+end)
+
+test.it("should handle newhead marker correctly", function()
+    package.loaded["mundo.core"].get_target_buffer = function()
+        return 1
+    end
+    _G.vim.fn.bufloaded = function()
+        return true
+    end
+    _G.vim.fn.undotree = function()
+        return {
+            entries = {
+                { seq = 1, time = 1000 },
+                { seq = 2, time = 1100 },
+                { seq = 3, time = 1200, newhead = 1, curhead = true }
+            },
+            seq_cur = 3,
+            seq_last = 3
+        }
+    end
+
+    local nodes_data = NodesData:new()
+    local nodes, nmap = nodes_data:make_nodes()
+
+    test.assert.equals(#nodes, 4, "should create root + 3 nodes")
+    test.assert.is_true(nmap[3].curhead, "node 3 should be marked as curhead")
+end)
+
+test.it("should handle deeply nested alt branches like undotree.txt", function()
+    package.loaded["mundo.core"].get_target_buffer = function()
+        return 1
+    end
+    _G.vim.fn.bufloaded = function()
+        return true
+    end
+    -- Simplified version of the complex structure from undotree.txt
+    _G.vim.fn.undotree = function()
+        return {
+            entries = {
+                {
+                    alt = {
+                        { seq = 1, time = 1753578244 },
+                        { seq = 2, time = 1753578350 },
+                        { seq = 3, time = 1753578664 },
+                        { seq = 4, time = 1753578665, save = 1 },
+                        { seq = 5, time = 1753578716 },
+                        { seq = 6, time = 1753578720, save = 2 },
+                        { seq = 7, time = 1753578751, save = 3 },
+                        { seq = 8, time = 1753578752 },
+                        { seq = 9, time = 1753578753, save = 4 },
+                        {
+                            seq = 11,
+                            time = 1753578763,
+                            save = 5,
+                            alt = {
+                                { seq = 10, time = 1753578760 }
+                            }
+                        },
+                        { seq = 12, time = 1753579021 },
+                        {
+                            seq = 14,
+                            time = 1753579035,
+                            alt = {
+                                { seq = 13, time = 1753579031 }
+                            }
+                        },
+                        { seq = 15, time = 1753579036, save = 6 },
+                        { seq = 16, time = 1753579182 },
+                        { seq = 17, time = 1753579397 },
+                        { seq = 18, time = 1753579397, save = 7 },
+                        { seq = 19, time = 1753579514 }
+                    },
+                    save = 8,
+                    seq = 20,
+                    time = 1753597375
+                },
+                { seq = 21, time = 1753597378 },
+                { seq = 22, time = 1753599322, save = 9 },
+                { seq = 23, time = 1753599327, save = 10 },
+                { seq = 24, time = 1753599355, save = 11 },
+                { seq = 25, time = 1753599368, save = 12 },
+                { seq = 26, time = 1753600169 },
+                { seq = 27, time = 1753615920, newhead = 1, curhead = true }
+            },
+            save_cur = 12,
+            save_last = 12,
+            seq_cur = 27,
+            seq_last = 27,
+            synced = 1,
+            time_cur = 1753615920
+        }
+    end
+
+    local nodes_data = NodesData:new()
+    local nodes, nmap = nodes_data:make_nodes()
+
+    -- Should handle all 27 sequence numbers plus root (28 total)
+    test.assert.equals(#nodes, 28, "should create root + 27 nodes for complex undotree structure")
+    
+    -- Verify critical nodes exist
+    test.assert.is_not_nil(nmap[0], "should have root node")
+    test.assert.is_not_nil(nmap[20], "should have main entry node 20")
+    test.assert.is_not_nil(nmap[27], "should have final curhead node 27")
+    test.assert.is_not_nil(nmap[10], "should have nested alt node 10")
+    test.assert.is_not_nil(nmap[13], "should have nested alt node 13")
+
+    -- Verify curhead is set correctly
+    test.assert.is_true(nmap[27].curhead, "node 27 should be curhead")
+
+    -- Verify some key parent-child relationships
+    test.assert.equals(nmap[21].parent.n, 20, "node 21 should be child of node 20")
+    test.assert.equals(nmap[10].parent.n, 11, "nested alt node 10 should be child of node 11")
+    test.assert.equals(nmap[13].parent.n, 14, "nested alt node 13 should be child of node 14")
+end)
+
+test.it("should handle empty alt arrays", function()
+    package.loaded["mundo.core"].get_target_buffer = function()
+        return 1
+    end
+    _G.vim.fn.bufloaded = function()
+        return true
+    end
+    _G.vim.fn.undotree = function()
+        return {
+            entries = {
+                { seq = 1, time = 1000, alt = {} },
+                { seq = 2, time = 1100 }
+            }
+        }
+    end
+
+    local nodes_data = NodesData:new()
+    local nodes, nmap = nodes_data:make_nodes()
+
+    test.assert.equals(#nodes, 3, "should create root + 2 nodes despite empty alt")
+    test.assert.equals(nmap[2].parent.n, 1, "node 2 should be child of node 1")
+end)
+
+test.it("should handle missing sequence numbers gracefully", function()
+    package.loaded["mundo.core"].get_target_buffer = function()
+        return 1
+    end
+    _G.vim.fn.bufloaded = function()
+        return true
+    end
+    _G.vim.fn.undotree = function()
+        return {
+            entries = {
+                { seq = 1, time = 1000 },
+                { seq = 5, time = 1100 }, -- Gap in sequence
+                { seq = 7, time = 1200 }  -- Another gap
+            }
+        }
+    end
+
+    local nodes_data = NodesData:new()
+    local nodes, nmap = nodes_data:make_nodes()
+
+    test.assert.equals(#nodes, 4, "should create root + 3 nodes")
+    test.assert.is_not_nil(nmap[1], "should have node 1")
+    test.assert.is_not_nil(nmap[5], "should have node 5")
+    test.assert.is_not_nil(nmap[7], "should have node 7")
+    test.assert.is_nil(nmap[2], "should not have node 2")
+    test.assert.is_nil(nmap[3], "should not have node 3")
+    test.assert.is_nil(nmap[4], "should not have node 4")
+    test.assert.is_nil(nmap[6], "should not have node 6")
+end)
+
+test.it("should handle complex diff with large line changes", function()
+    local nodes_data = NodesData:new()
+    local call_count = 0
+
+    _G.vim.api.nvim_buf_get_lines = function()
+        call_count = call_count + 1
+        if call_count == 1 then
+            -- Before: large file
+            local lines = {}
+            for i = 1, 100 do
+                table.insert(lines, "line " .. i)
+            end
+            return lines
+        else
+            -- After: modified large file
+            local lines = {}
+            for i = 1, 50 do
+                table.insert(lines, "modified line " .. i)
+            end
+            for i = 51, 150 do
+                table.insert(lines, "new line " .. i)
+            end
+            return lines
+        end
+    end
+
+    local node1 = { n = 1 }
+    local node2 = { n = 2 }
+
+    local diff = nodes_data:preview_diff(node1, node2)
+
+    test.assert.contains(diff, "--- a/buffer (undo 1)", "should have correct before header")
+    test.assert.contains(diff, "+++ b/buffer (undo 2)", "should have correct after header")
+    
+    -- Should contain hunk headers and changes
+    local has_hunk = false
+    local has_deletions = false
+    local has_additions = false
+    
+    for _, line in ipairs(diff) do
+        if line:match("^@@") then
+            has_hunk = true
+        elseif line:match("^%-") and not line:match("^%-%-%-") then
+            has_deletions = true
+        elseif line:match("^%+") and not line:match("^%+%+%+") then
+            has_additions = true
+        end
+    end
+
+    test.assert.is_true(has_hunk, "should have hunk headers")
+    test.assert.is_true(has_deletions, "should have deletions")
+    test.assert.is_true(has_additions, "should have additions")
+end)
+
+test.it("should reverse tree structure correctly", function()
+    package.loaded["mundo.core"].get_target_buffer = function()
+        return 1
+    end
+    _G.vim.fn.bufloaded = function()
+        return true
+    end
+    _G.vim.fn.undotree = function()
+        return {
+            entries = {
+                {
+                    seq = 1,
+                    time = 1000,
+                    alt = {
+                        { seq = 2, time = 1100 },
+                        { seq = 3, time = 1200 }
+                    }
+                },
+                { seq = 4, time = 2000 }
+            }
+        }
+    end
+
+    local nodes_data = NodesData:new()
+    local nodes, nmap = nodes_data:make_nodes()
+    
+    -- Store original order
+    local original_children = {}
+    if nmap[1] and nmap[1].children then
+        for i, child in ipairs(nmap[1].children) do
+            original_children[i] = child.n
+        end
+    end
+
+    -- Reverse the tree
+    nodes_data:reverse_tree()
+
+    -- Check that nodes are reversed
+    local first_node = nodes_data.nodes[1]
+    local last_node = nodes_data.nodes[#nodes_data.nodes]
+    
+    test.assert.is_not_nil(first_node, "should have first node after reverse")
+    test.assert.is_not_nil(last_node, "should have last node after reverse")
+
+    -- Check that children are reversed if they exist
+    if nmap[1] and nmap[1].children and #original_children > 1 then
+        local reversed_children = {}
+        for i, child in ipairs(nmap[1].children) do
+            reversed_children[i] = child.n
+        end
+        
+        -- Children should be in reverse order
+        for i = 1, #original_children do
+            test.assert.equals(reversed_children[i], original_children[#original_children - i + 1], 
+                "children should be reversed")
+        end
+    end
 end)

@@ -17,9 +17,7 @@ NodesData.__index = NodesData
 -- Create a new NodesData instance
 ---@return NodesData data The new NodesData instance
 function NodesData:new()
-    local config = require("mundo.config").get()
     local obj = {
-        tree_order = config.tree_order or "asc", -- Get order from config, default to ascending
         nodes = {},
         nmap = {},
         target_n = nil,
@@ -62,47 +60,179 @@ function NodesData:make_nodes()
     self.nodes[1] = root
     self.nmap[0] = root
 
-    -- Create all nodes first
-    for _, entry in ipairs(entries) do
-        local node = Node:new(entry.seq, nil, entry.time, entry.curhead)
-        self.nodes[#self.nodes + 1] = node
-        self.nmap[entry.seq] = node
+    -- Create all nodes first (including alt entries recursively)
+    local function create_nodes_recursive(entries_to_process)
+        for _, entry in ipairs(entries_to_process) do
+            -- Create node for this entry if it doesn't exist
+            if not self.nmap[entry.seq] then
+                local node = Node:new(entry.seq, nil, entry.time, entry.curhead)
+                self.nodes[#self.nodes + 1] = node
+                self.nmap[entry.seq] = node
+            end
+
+            -- Recursively process alt entries
+            if entry.alt then
+                create_nodes_recursive(entry.alt)
+            end
+        end
     end
 
+    -- Create all nodes including deeply nested alt entries
+    create_nodes_recursive(entries)
+
     -- Build parent-child relationships using Vim's undo tree structure
+    --
+    -- Vim's undotree structure works differently than initially assumed:
+    -- - Each entry represents a change with a sequence number
+    -- - Entries are ordered chronologically, not by tree structure
+    -- - The 'alt' field contains alternative branches that diverged from this point
+    -- - We need to build a proper tree by finding the correct parent for each entry
+    --
+    -- Algorithm:
+    -- 1. Sort all entries by sequence number (chronological order)
+    -- 2. For each entry, find its parent by looking at the previous entry
+    --    or by checking if it's an alt branch of an earlier entry
+    -- 3. Build the tree structure incrementally
+
+    -- Build a map of all entries for quick lookup, including nested alt entries
+    local entry_map = {}
+    local function build_entry_map_recursive(entries_to_process)
+        for _, entry in ipairs(entries_to_process) do
+            entry_map[entry.seq] = entry
+            -- Recursively process alt entries
+            if entry.alt then
+                build_entry_map_recursive(entry.alt)
+            end
+        end
+    end
+
+    build_entry_map_recursive(entries)
+
+    -- Build parent relationships based on undotree branching logic
+    -- Key insight: Distinguish between main sequence entries and alt entries
+
+    local branch_starts = {} -- seq -> parent_seq (only for entries that start branches)
+    local alt_sequences = {} -- parent_seq -> [seq1, seq2, seq3, ...] (ordered)
+    local in_alt_of = {} -- seq -> parent_seq (which alt array this node is in)
+    local is_main_entry = {} -- seq -> true (if this node is in the main entries array)
+
+    -- Mark all main entries
     for _, entry in ipairs(entries) do
+        is_main_entry[entry.seq] = true
+    end
+
+    local function identify_branch_relationships_recursive(entries_to_process)
+        for _, entry in ipairs(entries_to_process) do
+            if entry.alt and #entry.alt > 0 then
+                -- Store the alt sequence for this entry
+                alt_sequences[entry.seq] = {}
+                for _, alt in ipairs(entry.alt) do
+                    table.insert(alt_sequences[entry.seq], alt.seq)
+                    in_alt_of[alt.seq] = entry.seq
+                end
+
+                -- Only the first entry in the alt array starts a branch from this entry
+                local first_alt = entry.alt[1]
+                branch_starts[first_alt.seq] = entry.seq
+
+                -- Recursively process nested alt entries
+                for _, alt in ipairs(entry.alt) do
+                    if alt.alt then
+                        identify_branch_relationships_recursive({ alt })
+                    end
+                end
+            end
+        end
+    end
+
+    identify_branch_relationships_recursive(entries)
+
+    -- Collect all entries (including nested alt entries) and sort by sequence number
+    local all_entries = {}
+    local function collect_all_entries_recursive(entries_to_process)
+        for _, entry in ipairs(entries_to_process) do
+            table.insert(all_entries, entry)
+            if entry.alt then
+                collect_all_entries_recursive(entry.alt)
+            end
+        end
+    end
+
+    collect_all_entries_recursive(entries)
+    table.sort(all_entries, function(a, b)
+        return a.seq < b.seq
+    end)
+
+    -- Build the tree structure
+    for _, entry in ipairs(all_entries) do
         local node = self.nmap[entry.seq]
         if not node then
             goto continue
         end
 
+        -- Determine the parent of this node
         local parent_node = nil
 
-        if entry.alt and #entry.alt > 0 then
-            -- This entry has alternatives, meaning it branches from an earlier state
-            local parent_seq = entry.alt[1].seq
+        if branch_starts[entry.seq] then
+            -- This node starts a branch from a specific parent
+            parent_node = self.nmap[branch_starts[entry.seq]]
+        elseif in_alt_of[entry.seq] then
+            -- This node is part of an alt sequence - find its previous node in that sequence
+            local alt_parent = in_alt_of[entry.seq]
+            local alt_seq = alt_sequences[alt_parent]
+            local position_in_alt = nil
+            for i, seq in ipairs(alt_seq) do
+                if seq == entry.seq then
+                    position_in_alt = i
+                    break
+                end
+            end
+
+            if position_in_alt and position_in_alt > 1 then
+                -- Connect to previous node in the alt sequence
+                local prev_seq = alt_seq[position_in_alt - 1]
+                parent_node = self.nmap[prev_seq]
+            else
+                -- This should be the first node (already handled by branch_starts)
+                -- Fallback to alt parent
+                parent_node = self.nmap[alt_parent]
+            end
+        elseif is_main_entry[entry.seq] then
+            -- This node is part of the main sequence - connect to previous main entry
+            local parent_seq = 0
+            -- Look for the highest sequence number that is also a main entry
+            for i = entry.seq - 1, 0, -1 do
+                if self.nmap[i] and is_main_entry[i] then
+                    parent_seq = i
+                    break
+                end
+            end
             parent_node = self.nmap[parent_seq]
         else
-            -- Linear progression - parent is the previous sequence number
-            if entry.seq == 1 then
-                parent_node = root
+            -- Fallback: sequential connection
+            local parent_seq = entry.seq - 1
+            if parent_seq >= 0 and self.nmap[parent_seq] then
+                parent_node = self.nmap[parent_seq]
             else
-                -- Find the highest sequence number less than current that exists
-                for seq = entry.seq - 1, 1, -1 do
-                    if self.nmap[seq] then
-                        parent_node = self.nmap[seq]
+                -- Look backwards for the highest available sequence number
+                for i = entry.seq - 1, 0, -1 do
+                    if self.nmap[i] then
+                        parent_seq = i
+                        parent_node = self.nmap[parent_seq]
                         break
                     end
-                end
-                if not parent_node then
-                    parent_node = root
                 end
             end
         end
 
-        if parent_node then
+        -- Connect to parent (avoid circular references)
+        if parent_node and parent_node.n ~= entry.seq then
             node.parent = parent_node
             parent_node:add_child(node)
+        else
+            -- Fallback: connect to root if no valid parent found
+            node.parent = root
+            root:add_child(node)
         end
 
         ::continue::
@@ -113,10 +243,6 @@ function NodesData:make_nodes()
 
     self.target_n = target_n
     self.outdated = false
-
-    if self.tree_order == "desc" then
-        self:reverse_tree()
-    end
 
     return self.nodes, self.nmap
 end
@@ -378,12 +504,7 @@ end
 
 -- Reverse the tree by swapping children of all nodes
 ---@param self NodesData
----@field tree_order string The order of the tree ('asc' or 'desc')
 function NodesData:reverse_tree()
-    if self.tree_order == "asc" then
-        return
-    end -- Default is ascending, no need to reverse
-
     -- Reverse the order of nodes
     local reversed_nodes = {}
     for i = #self.nodes, 1, -1 do
@@ -408,5 +529,23 @@ function NodesData:reverse_tree()
 end
 -- Export the NodesData class
 M.NodesData = NodesData
+
+-- Convenience function for creating tree from undotree data
+function M.create(undotree_data)
+    local nodes_data = NodesData:new()
+
+    -- Mock the undotree() function for this test
+    local original_undotree = vim.fn.undotree
+    vim.fn.undotree = function()
+        return undotree_data
+    end
+
+    local nodes, nmap = nodes_data:make_nodes()
+
+    -- Restore original function
+    vim.fn.undotree = original_undotree
+
+    return { nodes = nmap, root = nodes[0] or nodes_data.nodes[0] }
+end
 
 return M

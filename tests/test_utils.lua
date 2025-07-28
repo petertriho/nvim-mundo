@@ -39,13 +39,6 @@ local utils = require("mundo.utils")
 
 test.describe("Utils Module")
 
-test.it("should reverse strings correctly", function()
-    test.assert.equals(utils.reverse_string("hello"), "olleh", "should reverse simple string")
-    test.assert.equals(utils.reverse_string(""), "", "should handle empty string")
-    test.assert.equals(utils.reverse_string("a"), "a", "should handle single character")
-    test.assert.equals(utils.reverse_string("12345"), "54321", "should reverse numbers")
-end)
-
 test.it("should handle goto_buffer with different input types", function()
     -- Mock vim.cmd to track calls
     local cmd_calls = {}
