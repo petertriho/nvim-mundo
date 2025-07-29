@@ -199,8 +199,8 @@ test.it("should handle make_nodes with valid undotree", function()
     _G.vim.fn.undotree = function()
         return {
             entries = {
-                { seq = 1, time = 1234567890, curhead = false },
-                { seq = 2, time = 1234567891, curhead = true },
+                { seq = 1, time = 1234567890, save = nil },
+                { seq = 2, time = 1234567891, save = 1 },
             },
         }
     end
@@ -214,7 +214,7 @@ test.it("should handle make_nodes with valid undotree", function()
     test.assert.is_not_nil(nmap[2], "should have node 2")
     test.assert.equals(nmap[1].n, 1, "node 1 should have correct sequence")
     test.assert.equals(nmap[2].n, 2, "node 2 should have correct sequence")
-    test.assert.is_true(nmap[2].curhead, "node 2 should be curhead")
+    test.assert.equals(nmap[2].save, 1, "node 2 should be saved state")
 end)
 
 test.it("should handle complex nested alt branches", function()
@@ -243,7 +243,7 @@ test.it("should handle complex nested alt branches", function()
                         }
                     }
                 },
-                { seq = 6, time = 2000, curhead = true }
+                { seq = 6, time = 2000, save = 2 }
             },
         }
     end
@@ -313,7 +313,7 @@ test.it("should handle newhead marker correctly", function()
             entries = {
                 { seq = 1, time = 1000 },
                 { seq = 2, time = 1100 },
-                { seq = 3, time = 1200, newhead = 1, curhead = true }
+                { seq = 3, time = 1200, newhead = 1, save = 1 }
             },
             seq_cur = 3,
             seq_last = 3
@@ -324,7 +324,7 @@ test.it("should handle newhead marker correctly", function()
     local nodes, nmap = nodes_data:make_nodes()
 
     test.assert.equals(#nodes, 4, "should create root + 3 nodes")
-    test.assert.is_true(nmap[3].curhead, "node 3 should be marked as curhead")
+    test.assert.equals(nmap[3].save, 1, "node 3 should be marked as saved state")
 end)
 
 test.it("should handle deeply nested alt branches like undotree.txt", function()
@@ -381,7 +381,7 @@ test.it("should handle deeply nested alt branches like undotree.txt", function()
                 { seq = 24, time = 1753599355, save = 11 },
                 { seq = 25, time = 1753599368, save = 12 },
                 { seq = 26, time = 1753600169 },
-                { seq = 27, time = 1753615920, newhead = 1, curhead = true }
+                { seq = 27, time = 1753615920, newhead = 1, save = 13 }
             },
             save_cur = 12,
             save_last = 12,
@@ -401,12 +401,12 @@ test.it("should handle deeply nested alt branches like undotree.txt", function()
     -- Verify critical nodes exist
     test.assert.is_not_nil(nmap[0], "should have root node")
     test.assert.is_not_nil(nmap[20], "should have main entry node 20")
-    test.assert.is_not_nil(nmap[27], "should have final curhead node 27")
+    test.assert.is_not_nil(nmap[27], "should have final saved node 27")
     test.assert.is_not_nil(nmap[10], "should have nested alt node 10")
     test.assert.is_not_nil(nmap[13], "should have nested alt node 13")
 
-    -- Verify curhead is set correctly
-    test.assert.is_true(nmap[27].curhead, "node 27 should be curhead")
+    -- Verify save is set correctly
+    test.assert.equals(nmap[27].save, 13, "node 27 should be saved state")
 
     -- Verify some key parent-child relationships
     test.assert.equals(nmap[21].parent.n, 20, "node 21 should be child of node 20")

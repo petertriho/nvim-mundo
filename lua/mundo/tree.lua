@@ -65,7 +65,7 @@ function NodesData:make_nodes()
         for _, entry in ipairs(entries_to_process) do
             -- Create node for this entry if it doesn't exist
             if not self.nmap[entry.seq] then
-                local node = Node:new(entry.seq, nil, entry.time, entry.curhead)
+                local node = Node:new(entry.seq, nil, entry.time, entry.save)
                 self.nodes[#self.nodes + 1] = node
                 self.nmap[entry.seq] = node
             end

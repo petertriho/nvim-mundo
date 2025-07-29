@@ -67,7 +67,7 @@ test.it("should create and manipulate node tree structure", function()
     test.assert.equals(#node1.children, 2, "node1 should have two children")
     test.assert.equals(node2.parent, node1, "node2 parent should be node1")
     test.assert.equals(node3.parent, node1, "node3 parent should be node1")
-    test.assert.is_true(node3.curhead, "node3 should be curhead")
+    test.assert.is_not_nil(node3.save, "node3 should be saved state")
 end)
 
 test.it("should handle configuration merging correctly", function()
@@ -101,8 +101,8 @@ test.it("should generate consistent graph output", function()
     local mock_nodes_data = {
         make_nodes = function()
             local nodes = {
-                { n = 1, time = 1000, curhead = false },
-                { n = 2, time = 2000, curhead = true },
+                { n = 1, time = 1000, save = nil },
+                { n = 2, time = 2000, save = 1 },
             }
             local nmap = { [1] = nodes[1], [2] = nodes[2] }
             return nodes, nmap

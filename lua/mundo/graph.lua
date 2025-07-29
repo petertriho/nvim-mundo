@@ -57,52 +57,6 @@ local function calculate_node_depths(nodes, root_node)
     return node_depths
 end
 
--- Generate branching connectors between nodes
----@param from_node Node The parent node
----@param to_node Node The child node
----@param from_depth number Depth of parent node
----@param to_depth number Depth of child node
----@param max_depth number Maximum depth in the tree
----@return string[] connector_lines The connector lines
-local function generate_connectors(from_node, to_node, from_depth, to_depth, max_depth)
-    local lines = {}
-
-    if from_depth == to_depth then
-        -- Straight vertical line
-        table.insert(lines, string.rep(" ", from_depth) .. "|" .. string.rep(" ", max_depth - from_depth))
-    else
-        -- Branching - need to show the split
-        local min_depth = math.min(from_depth, to_depth)
-        local max_local_depth = math.max(from_depth, to_depth)
-
-        -- Create the branching line
-        local branch_line = string.rep(" ", min_depth)
-
-        if from_depth < to_depth then
-            -- Branching to the right
-            branch_line = branch_line .. "+"
-            for d = min_depth + 1, max_local_depth - 1 do
-                branch_line = branch_line .. "-"
-            end
-            if max_local_depth > min_depth then
-                branch_line = branch_line .. "\\"
-            end
-        else
-            -- Branching to the left (less common)
-            for d = to_depth, from_depth - 1 do
-                branch_line = branch_line .. "-"
-            end
-            branch_line = branch_line .. "+"
-        end
-
-        -- Pad to max width
-        branch_line = branch_line .. string.rep(" ", max_depth - #branch_line + 1)
-        table.insert(lines, branch_line)
-    end
-
-    return lines
-end
-
 -- Generate the visual graph representation of the undo tree
 ---@param nodes_data NodesData The nodes data object
 ---@param verbose boolean Whether to show verbose graph
@@ -196,7 +150,7 @@ function M.generate_graph(nodes_data, verbose, header_lines, first_visible, last
         local node_char = "o"
         if node.n == current_seq then
             node_char = "@"
-        elseif node.curhead then
+        elseif node.save then
             node_char = "w"
         end
 

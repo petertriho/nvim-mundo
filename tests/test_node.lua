@@ -15,15 +15,15 @@ test.it("should create a new node with required parameters", function()
     test.assert.equals(node.n, 1, "should set sequence number")
     test.assert.is_nil(node.parent, "should set parent to nil")
     test.assert.equals(node.time, 1234567890, "should set timestamp")
-    test.assert.is_false(node.curhead, "should default curhead to false")
+    test.assert.is_nil(node.save, "should default save to nil")
     test.assert.is_type(node.children, "table", "should initialize children as table")
     test.assert.equals(#node.children, 0, "should start with empty children")
 end)
 
-test.it("should create a node with curhead parameter", function()
-    local node = Node:new(2, nil, 1234567890, true)
+test.it("should create a node with save parameter", function()
+    local node = Node:new(2, nil, 1234567890, 5)
 
-    test.assert.is_true(node.curhead, "should set curhead to true when provided")
+    test.assert.equals(node.save, 5, "should set save number when provided")
 end)
 
 test.it("should create a node with parent", function()
@@ -78,17 +78,17 @@ test.it("should handle node with sequence number 0", function()
 end)
 
 test.it("should preserve node properties after adding children", function()
-    local parent = Node:new(5, nil, 1234567890, true)
-    local child = Node:new(6, parent, 1234567891, false)
+    local parent = Node:new(5, nil, 1234567890, 3)
+    local child = Node:new(6, parent, 1234567891, nil)
 
     parent:add_child(child)
 
     test.assert.equals(parent.n, 5, "parent sequence should be preserved")
-    test.assert.is_true(parent.curhead, "parent curhead should be preserved")
+    test.assert.equals(parent.save, 3, "parent save should be preserved")
     test.assert.equals(parent.time, 1234567890, "parent time should be preserved")
 
     test.assert.equals(child.n, 6, "child sequence should be preserved")
-    test.assert.is_false(child.curhead, "child curhead should be preserved")
+    test.assert.is_nil(child.save, "child save should be preserved")
     test.assert.equals(child.time, 1234567891, "child time should be preserved")
 end)
 

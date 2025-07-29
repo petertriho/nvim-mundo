@@ -29,7 +29,7 @@ test.it("should generate graph with single node", function()
     local mock_node = {
         n = 1,
         time = 1234567890,
-        curhead = false,
+        save = nil,
     }
 
     local mock_nodes_data = {
@@ -49,8 +49,8 @@ test.it("should generate graph with single node", function()
 end)
 
 test.it("should generate graph with multiple nodes and vertical lines", function()
-    local node1 = { n = 1, time = 1234567890, curhead = false }
-    local node2 = { n = 2, time = 1234567891, curhead = true }
+    local node1 = { n = 1, time = 1234567890, save = nil }
+    local node2 = { n = 2, time = 1234567891, save = 1 }
 
     local mock_nodes_data = {
         make_nodes = function()
@@ -70,9 +70,9 @@ test.it("should generate graph with multiple nodes and vertical lines", function
 end)
 
 test.it("should mark different node types correctly", function()
-    local regular_node = { n = 1, time = 1234567890, curhead = false }
-    local current_node = { n = 2, time = 1234567891, curhead = false }
-    local write_node = { n = 3, time = 1234567892, curhead = true }
+    local regular_node = { n = 1, time = 1234567890, save = nil }
+    local current_node = { n = 2, time = 1234567891, save = nil }
+    local write_node = { n = 3, time = 1234567892, save = 1 }
 
     local mock_nodes_data = {
         make_nodes = function()
@@ -154,7 +154,7 @@ test.it("should handle inline diff information", function()
     local node_with_parent = {
         n = 2,
         time = 1234567891,
-        curhead = false,
+        save = nil,
         parent = { n = 1 },
     }
 

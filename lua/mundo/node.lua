@@ -6,7 +6,7 @@ local M = {}
 ---@field parent Node? The parent node in the undo tree
 ---@field children Node[] List of child nodes
 ---@field time number Timestamp when this undo state was created
----@field curhead boolean Whether this is the current head of a branch
+---@field save number? The save number if this is a saved state (write state)
 local Node = {}
 Node.__index = Node
 
@@ -14,15 +14,15 @@ Node.__index = Node
 ---@param n number The sequence number
 ---@param parent Node? The parent node
 ---@param time number The timestamp
----@param curhead? boolean Whether this is the current head (default: false)
+---@param save? number The save number if this is a saved state
 ---@return Node node The new node
-function Node:new(n, parent, time, curhead)
+function Node:new(n, parent, time, save)
     local node = {
         n = n,
         parent = parent,
         children = {},
         time = time,
-        curhead = curhead or false,
+        save = save,
     }
     setmetatable(node, self)
     return node
