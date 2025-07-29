@@ -218,6 +218,35 @@ function M.format_output(tree_lines, mirror_graph)
 end
 
 -- Generate header lines for the graph
+---Helper function to find keys mapped to a specific action
+---@param mappings table<string, string> The mappings table
+---@param action string The action to find keys for
+---@return string[] keys List of keys mapped to the action
+local function find_keys_for_action(mappings, action)
+    local keys = {}
+    for key, mapped_action in pairs(mappings) do
+        if mapped_action == action then
+            table.insert(keys, key)
+        end
+    end
+    return keys
+end
+
+---Helper function to format keys for display
+---@param keys string[] List of keys
+---@return string formatted_keys Formatted key string
+local function format_keys(keys)
+    if #keys == 0 then
+        return "none"
+    elseif #keys == 1 then
+        return keys[1]
+    else
+        -- Sort keys for consistent display
+        table.sort(keys)
+        return table.concat(keys, "/")
+    end
+end
+
 ---@param target_buffer number The target buffer number
 ---@param show_help boolean Whether to show help text
 ---@return string[] header The header lines
@@ -227,21 +256,132 @@ function M.generate_header(target_buffer, show_help)
 
     if cfg.header then
         if show_help then
+            local mappings = cfg.mappings
+            
+            -- Find keys for each action, prioritizing traditional keys
+            local move_keys = {}
+            local move_older_keys = find_keys_for_action(mappings, "move_older")
+            local move_newer_keys = find_keys_for_action(mappings, "move_newer")
+            if #move_older_keys > 0 and #move_newer_keys > 0 then
+                -- Prioritize j/k if they exist
+                local newer_key = "k"
+                local older_key = "j"
+                local has_j = false
+                local has_k = false
+                
+                for _, key in ipairs(move_newer_keys) do
+                    if key == "k" then has_k = true end
+                end
+                for _, key in ipairs(move_older_keys) do
+                    if key == "j" then has_j = true end
+                end
+                
+                if has_j and has_k then
+                    move_keys = "j/k"
+                else
+                    move_keys = format_keys(move_newer_keys) .. "/" .. format_keys(move_older_keys)
+                end
+            end
+            
+            local write_keys = ""
+            local move_older_write_keys = find_keys_for_action(mappings, "move_older_write")
+            local move_newer_write_keys = find_keys_for_action(mappings, "move_newer_write")
+            if #move_older_write_keys > 0 and #move_newer_write_keys > 0 then
+                -- Prioritize J/K if they exist
+                local newer_key = "K"
+                local older_key = "J"
+                local has_J = false
+                local has_K = false
+                
+                for _, key in ipairs(move_newer_write_keys) do
+                    if key == "K" then has_K = true end
+                end
+                for _, key in ipairs(move_older_write_keys) do
+                    if key == "J" then has_J = true end
+                end
+                
+                if has_J and has_K then
+                    write_keys = "J/K"
+                else
+                    write_keys = format_keys(move_newer_write_keys) .. "/" .. format_keys(move_older_write_keys)
+                end
+            end
+            
+            local toggle_inline_keys = format_keys(find_keys_for_action(mappings, "toggle_inline"))
+            local search_keys = format_keys(find_keys_for_action(mappings, "search"))
+            
+            local search_nav_keys = {}
+            local next_match_keys = find_keys_for_action(mappings, "next_match")
+            local prev_match_keys = find_keys_for_action(mappings, "previous_match")
+            if #next_match_keys > 0 and #prev_match_keys > 0 then
+                search_nav_keys = format_keys(next_match_keys) .. "/" .. format_keys(prev_match_keys)
+            end
+            
+            local play_to_keys = format_keys(find_keys_for_action(mappings, "play_to"))
+            local diff_keys = find_keys_for_action(mappings, "diff")
+            local diff_current_keys = format_keys(find_keys_for_action(mappings, "diff_current_buffer"))
+            local quit_keys = format_keys(find_keys_for_action(mappings, "quit"))
+            
+            local preview_keys = {}
+            local preview_action_keys = find_keys_for_action(mappings, "preview")
+            if #preview_action_keys > 0 then
+                preview_keys = format_keys(preview_action_keys)
+            end
+
             header = {
                 string.format('" Mundo (%d) - Press ? for Help:', target_buffer),
-                '" j/k   Next/Prev undo state.',
-                '" J/K   Next/Prev write state.',
-                '" i     Toggle "inline diff" mode.',
-                '" /     Find changes that match string.',
-                '" n/N   Next/Prev undo that matches search.',
-                '" P     Play current state to selected undo.',
-                '" d     Vert diff of undo with current state.',
-                '" p     Diff selected undo and current state.',
-                '" r     Diff selected undo and prior undo.',
-                '" q     Quit!',
-                '" <cr>  Revert to selected state.',
-                "",
             }
+            
+            -- Only add help lines for actions that have mapped keys
+            if move_keys ~= "" then
+                table.insert(header, string.format('" %s   Next/Prev undo state.', move_keys))
+            end
+            if write_keys ~= "" then
+                table.insert(header, string.format('" %s   Next/Prev write state.', write_keys))
+            end
+            if toggle_inline_keys ~= "none" then
+                table.insert(header, string.format('" %s     Toggle "inline diff" mode.', toggle_inline_keys))
+            end
+            if search_keys ~= "none" then
+                table.insert(header, string.format('" %s     Find changes that match string.', search_keys))
+            end
+            if search_nav_keys ~= "" then
+                table.insert(header, string.format('" %s   Next/Prev undo that matches search.', search_nav_keys))
+            end
+            if play_to_keys ~= "none" then
+                table.insert(header, string.format('" %s     Play current state to selected undo.', play_to_keys))
+            end
+            
+            -- Handle diff keys specially - separate 'd' and 'r' even though they map to same action
+            local d_keys = {}
+            local r_keys = {}
+            for _, key in ipairs(diff_keys) do
+                if key == "d" then
+                    table.insert(d_keys, key)
+                elseif key == "r" then
+                    table.insert(r_keys, key)
+                else
+                    table.insert(d_keys, key) -- default other diff keys to 'd' behavior
+                end
+            end
+            
+            if #d_keys > 0 then
+                table.insert(header, string.format('" %s     Vert diff of undo with current state.', format_keys(d_keys)))
+            end
+            if diff_current_keys ~= "none" then
+                table.insert(header, string.format('" %s     Diff selected undo and current state.', diff_current_keys))
+            end
+            if #r_keys > 0 then
+                table.insert(header, string.format('" %s     Diff selected undo and prior undo.', format_keys(r_keys)))
+            end
+            if quit_keys ~= "none" then
+                table.insert(header, string.format('" %s     Quit!', quit_keys))
+            end
+            if preview_keys ~= "" then
+                table.insert(header, string.format('" %s  Revert to selected state.', preview_keys))
+            end
+            
+            table.insert(header, "")
         else
             header = { string.format('" Mundo (%d) - Press ? for Help:', target_buffer), "" }
         end

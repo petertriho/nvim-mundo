@@ -238,12 +238,12 @@ test.it("should handle complex nested alt branches", function()
                             time = 1300,
                             save = 1,
                             alt = {
-                                { seq = 5, time = 1400 }
-                            }
-                        }
-                    }
+                                { seq = 5, time = 1400 },
+                            },
+                        },
+                    },
                 },
-                { seq = 6, time = 2000, save = 2 }
+                { seq = 6, time = 2000, save = 2 },
             },
         }
     end
@@ -282,10 +282,10 @@ test.it("should handle save markers correctly", function()
                 { seq = 2, time = 1100, save = 1 },
                 { seq = 3, time = 1200 },
                 { seq = 4, time = 1300, save = 2 },
-                { seq = 5, time = 1400, save = 3 }
+                { seq = 5, time = 1400, save = 3 },
             },
             save_cur = 3,
-            save_last = 3
+            save_last = 3,
         }
     end
 
@@ -313,10 +313,10 @@ test.it("should handle newhead marker correctly", function()
             entries = {
                 { seq = 1, time = 1000 },
                 { seq = 2, time = 1100 },
-                { seq = 3, time = 1200, newhead = 1, save = 1 }
+                { seq = 3, time = 1200, newhead = 1, save = 1 },
             },
             seq_cur = 3,
-            seq_last = 3
+            seq_last = 3,
         }
     end
 
@@ -354,26 +354,26 @@ test.it("should handle deeply nested alt branches like undotree.txt", function()
                             time = 1753578763,
                             save = 5,
                             alt = {
-                                { seq = 10, time = 1753578760 }
-                            }
+                                { seq = 10, time = 1753578760 },
+                            },
                         },
                         { seq = 12, time = 1753579021 },
                         {
                             seq = 14,
                             time = 1753579035,
                             alt = {
-                                { seq = 13, time = 1753579031 }
-                            }
+                                { seq = 13, time = 1753579031 },
+                            },
                         },
                         { seq = 15, time = 1753579036, save = 6 },
                         { seq = 16, time = 1753579182 },
                         { seq = 17, time = 1753579397 },
                         { seq = 18, time = 1753579397, save = 7 },
-                        { seq = 19, time = 1753579514 }
+                        { seq = 19, time = 1753579514 },
                     },
                     save = 8,
                     seq = 20,
-                    time = 1753597375
+                    time = 1753597375,
                 },
                 { seq = 21, time = 1753597378 },
                 { seq = 22, time = 1753599322, save = 9 },
@@ -381,14 +381,14 @@ test.it("should handle deeply nested alt branches like undotree.txt", function()
                 { seq = 24, time = 1753599355, save = 11 },
                 { seq = 25, time = 1753599368, save = 12 },
                 { seq = 26, time = 1753600169 },
-                { seq = 27, time = 1753615920, newhead = 1, save = 13 }
+                { seq = 27, time = 1753615920, newhead = 1, save = 13 },
             },
             save_cur = 12,
             save_last = 12,
             seq_cur = 27,
             seq_last = 27,
             synced = 1,
-            time_cur = 1753615920
+            time_cur = 1753615920,
         }
     end
 
@@ -397,7 +397,7 @@ test.it("should handle deeply nested alt branches like undotree.txt", function()
 
     -- Should handle all 27 sequence numbers plus root (28 total)
     test.assert.equals(#nodes, 28, "should create root + 27 nodes for complex undotree structure")
-    
+
     -- Verify critical nodes exist
     test.assert.is_not_nil(nmap[0], "should have root node")
     test.assert.is_not_nil(nmap[20], "should have main entry node 20")
@@ -425,8 +425,8 @@ test.it("should handle empty alt arrays", function()
         return {
             entries = {
                 { seq = 1, time = 1000, alt = {} },
-                { seq = 2, time = 1100 }
-            }
+                { seq = 2, time = 1100 },
+            },
         }
     end
 
@@ -449,8 +449,8 @@ test.it("should handle missing sequence numbers gracefully", function()
             entries = {
                 { seq = 1, time = 1000 },
                 { seq = 5, time = 1100 }, -- Gap in sequence
-                { seq = 7, time = 1200 }  -- Another gap
-            }
+                { seq = 7, time = 1200 }, -- Another gap
+            },
         }
     end
 
@@ -500,12 +500,12 @@ test.it("should handle complex diff with large line changes", function()
 
     test.assert.contains(diff, "--- a/buffer (undo 1)", "should have correct before header")
     test.assert.contains(diff, "+++ b/buffer (undo 2)", "should have correct after header")
-    
+
     -- Should contain hunk headers and changes
     local has_hunk = false
     local has_deletions = false
     local has_additions = false
-    
+
     for _, line in ipairs(diff) do
         if line:match("^@@") then
             has_hunk = true
@@ -536,17 +536,17 @@ test.it("should reverse tree structure correctly", function()
                     time = 1000,
                     alt = {
                         { seq = 2, time = 1100 },
-                        { seq = 3, time = 1200 }
-                    }
+                        { seq = 3, time = 1200 },
+                    },
                 },
-                { seq = 4, time = 2000 }
-            }
+                { seq = 4, time = 2000 },
+            },
         }
     end
 
     local nodes_data = NodesData:new()
     local nodes, nmap = nodes_data:make_nodes()
-    
+
     -- Store original order
     local original_children = {}
     if nmap[1] and nmap[1].children then
@@ -561,7 +561,7 @@ test.it("should reverse tree structure correctly", function()
     -- Check that nodes are reversed
     local first_node = nodes_data.nodes[1]
     local last_node = nodes_data.nodes[#nodes_data.nodes]
-    
+
     test.assert.is_not_nil(first_node, "should have first node after reverse")
     test.assert.is_not_nil(last_node, "should have last node after reverse")
 
@@ -571,11 +571,14 @@ test.it("should reverse tree structure correctly", function()
         for i, child in ipairs(nmap[1].children) do
             reversed_children[i] = child.n
         end
-        
+
         -- Children should be in reverse order
         for i = 1, #original_children do
-            test.assert.equals(reversed_children[i], original_children[#original_children - i + 1], 
-                "children should be reversed")
+            test.assert.equals(
+                reversed_children[i],
+                original_children[#original_children - i + 1],
+                "children should be reversed"
+            )
         end
     end
 end)

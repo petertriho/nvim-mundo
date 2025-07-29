@@ -199,7 +199,7 @@ test.it("should manage autocommands lifecycle correctly", function()
     -- Clear any cached modules to ensure clean state
     package.loaded["mundo.config"] = nil
     package.loaded["mundo.core"] = nil
-    
+
     -- Load modules and setup config (required for core to work properly)
     local config = require("mundo.config")
     config.setup({}) -- Initialize with defaults

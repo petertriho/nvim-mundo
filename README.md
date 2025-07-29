@@ -49,17 +49,23 @@ Add the plugin directory to your plugin manager configuration.
 
 ### Default Key Mappings (in Mundo window)
 
-- `j/k` - Move to next/previous undo state
-- `J/K` - Move to next/previous write state
 - `<CR>/o` - Preview/revert to selected state
+- `j/<down>` - Move to next/older undo state
+- `k/<up>` - Move to previous/newer undo state
+- `J` - Move to next/older write state
+- `K` - Move to previous/newer write state
+- `gg` - Move to top of undo tree
+- `G` - Move to bottom of undo tree
 - `P` - Play changes to selected state
 - `d` - Show diff in vertical split
-- `p` - Show diff in preview window
 - `i` - Toggle inline diff mode
 - `/` - Search for changes
 - `n/N` - Next/previous search match
+- `p` - Show diff with current buffer
+- `r` - Show diff (same as `d`)
 - `?` - Toggle help
 - `q/<Esc>/<C-c>` - Quit Mundo
+- `<2-LeftMouse>` - Mouse click to select state
 - `<Tab>/<C-w>p` - Return to target buffer
 
 ## Configuration
@@ -96,13 +102,29 @@ let g:mundo_playback_delay = 60            " Delay between playback steps in mil
 let g:mundo_preview_statusline = "Mundo Preview"  " Statusline for preview window
 let g:mundo_tree_statusline = "Mundo"             " Statusline for tree window
 
-" Custom mappings (dictionary)
+" Custom mappings (dictionary) - all original vim-mundo mappings
 let g:mundo_mappings = {
     \ '<CR>': 'preview',
     \ 'o': 'preview',
+    \ 'j': 'move_older',
+    \ 'k': 'move_newer',
+    \ '<down>': 'move_older',
+    \ '<up>': 'move_newer',
     \ 'J': 'move_older_write',
     \ 'K': 'move_newer_write',
-    \ 'q': 'quit'
+    \ 'gg': 'move_top',
+    \ 'G': 'move_bottom',
+    \ 'P': 'play_to',
+    \ 'd': 'diff',
+    \ 'i': 'toggle_inline',
+    \ '/': 'search',
+    \ 'n': 'next_match',
+    \ 'N': 'previous_match',
+    \ 'p': 'diff_current_buffer',
+    \ 'r': 'diff',
+    \ '?': 'toggle_help',
+    \ 'q': 'quit',
+    \ '<2-LeftMouse>': 'mouse_click'
     \ }
 ```
 
@@ -142,12 +164,18 @@ require("mundo").setup({
     map_move_older = "j",          -- Key to move to older undo
     map_up_down = true,            -- Use arrow keys for navigation
 
-    -- Custom mappings (optional)
+    -- Custom mappings (all original vim-mundo mappings supported)
     mappings = {
         ["<CR>"] = "preview",
         ["o"] = "preview",
+        ["j"] = "move_older",
+        ["k"] = "move_newer",
+        ["<down>"] = "move_older",
+        ["<up>"] = "move_newer",
         ["J"] = "move_older_write",
         ["K"] = "move_newer_write",
+        ["gg"] = "move_top",
+        ["G"] = "move_bottom",
         ["P"] = "play_to",
         ["d"] = "diff",
         ["i"] = "toggle_inline",
@@ -155,8 +183,10 @@ require("mundo").setup({
         ["n"] = "next_match",
         ["N"] = "previous_match",
         ["p"] = "diff_current_buffer",
+        ["r"] = "diff",
         ["?"] = "toggle_help",
         ["q"] = "quit",
+        ["<2-LeftMouse>"] = "mouse_click",
     },
 })
 ```

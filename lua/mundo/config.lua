@@ -38,6 +38,10 @@ M.defaults = {
     mappings = {
         ["<CR>"] = "preview",
         ["o"] = "preview",
+        ["j"] = "move_older",
+        ["k"] = "move_newer",
+        ["<down>"] = "move_older",
+        ["<up>"] = "move_newer",
         ["J"] = "move_older_write",
         ["K"] = "move_newer_write",
         ["gg"] = "move_top",
@@ -49,7 +53,7 @@ M.defaults = {
         ["n"] = "next_match",
         ["N"] = "previous_match",
         ["p"] = "diff_current_buffer",
-        ["r"] = "rdiff",
+        ["r"] = "diff",
         ["?"] = "toggle_help",
         ["q"] = "quit",
         ["<2-LeftMouse>"] = "mouse_click",
@@ -82,14 +86,14 @@ M.current = {}
 function M.setup(opts)
     -- Start with defaults
     local config = vim.deepcopy(M.defaults)
-    
+
     -- Apply user-provided options first
     config = vim.tbl_deep_extend("force", config, opts or {})
-    
+
     -- vim.g variables have highest precedence (matching original vim-mundo)
     local vim_g_mappings = {
         mundo_width = "width",
-        mundo_preview_height = "preview_height", 
+        mundo_preview_height = "preview_height",
         mundo_preview_bottom = "preview_bottom",
         mundo_right = "right",
         mundo_help = "help",
@@ -109,14 +113,14 @@ function M.setup(opts)
         mundo_autorefresh = "autorefresh",
         mundo_autorefresh_events = "autorefresh_events",
     }
-    
+
     -- Apply vim.g settings with highest precedence
     for vim_var, config_key in pairs(vim_g_mappings) do
         if vim.g[vim_var] ~= nil then
             config[config_key] = vim.g[vim_var]
         end
     end
-    
+
     M.current = config
 
     -- Add default move mappings to config.mappings
