@@ -112,7 +112,9 @@ function M.render_graph(force)
     local current_seq = state.nodes_data:current()
     for i, line in ipairs(output) do
         if line:find("@") then
-            api.nvim_win_set_cursor(0, { i + #header, 0 })
+            -- Find the exact position of the @ marker for proper alignment
+            local marker_pos = line:find("@")
+            api.nvim_win_set_cursor(0, { i + #header, marker_pos - 1 })
             break
         end
     end
@@ -226,9 +228,10 @@ function M.move(direction, count)
 
     api.nvim_win_set_cursor(0, { new_line, 0 })
 
-    -- Find the node marker on this line
+    -- Find the node marker on this line, accounting for branch indentation
     local line = api.nvim_get_current_line()
-    local pos = line:find("[@ ow]")
+    -- Look for the actual node marker (@ o w) after any branch characters (| )
+    local pos = line:find("[@ow]")
     if pos then
         api.nvim_win_set_cursor(0, { new_line, pos - 1 })
     end

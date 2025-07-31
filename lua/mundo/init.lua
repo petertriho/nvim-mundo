@@ -71,7 +71,9 @@ function M.show()
             local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
             for i, line in ipairs(lines) do
                 if line:find("@") then
-                    vim.api.nvim_win_set_cursor(0, { i, 0 })
+                    -- Find the exact position of the @ marker for proper alignment
+                    local marker_pos = line:find("@")
+                    vim.api.nvim_win_set_cursor(0, { i, marker_pos - 1 })
                     break
                 end
             end
