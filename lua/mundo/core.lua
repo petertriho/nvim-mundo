@@ -9,6 +9,9 @@ local graph = require("mundo.graph")
 local window = require("mundo.window")
 local tree = require("mundo.tree")
 
+-- Debounce state for render_preview
+local debounce_timer = nil
+
 ---@class MundoState
 ---@field target_buffer number? The target buffer number
 ---@field preview_outdated boolean Whether the preview needs updating
@@ -121,8 +124,8 @@ function M.render_graph(force)
     end
 end
 
--- Render the preview window
-function M.render_preview()
+-- Internal implementation of render_preview (non-debounced)
+local function render_preview_impl()
     if not state.preview_outdated then
         return
     end
@@ -166,6 +169,26 @@ function M.render_preview()
     state.preview_outdated = false
 
     -- Don't restore window - keep current focus
+end
+
+-- Render the preview window (debounced)
+function M.render_preview()
+    -- Cancel previous timer if exists
+    if debounce_timer then
+        debounce_timer:stop()
+        debounce_timer:close()
+        debounce_timer = nil
+    end
+
+    -- Set up timer to debounce render calls
+    debounce_timer = vim.loop.new_timer()
+    debounce_timer:start(config.get_value("auto_preview_delay"), 0, vim.schedule_wrap(function()
+        render_preview_impl()
+        if debounce_timer then
+            debounce_timer:close()
+            debounce_timer = nil
+        end
+    end))
 end
 
 -- Move cursor in the undo tree
