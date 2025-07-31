@@ -102,6 +102,14 @@ let g:mundo_playback_delay = 60            " Delay between playback steps in mil
 let g:mundo_preview_statusline = "Mundo Preview"  " Statusline for preview window
 let g:mundo_tree_statusline = "Mundo"             " Statusline for tree window
 
+" Custom symbols for graph visualization
+let g:mundo_symbols = {
+    \ 'current': '@',                     " Symbol for current undo state
+    \ 'node': 'o',                        " Symbol for regular undo states
+    \ 'saved': 'w',                       " Symbol for saved/written states
+    \ 'vertical': '|'                     " Symbol for vertical tree lines
+    \ }
+
 " Custom mappings (dictionary) - all original vim-mundo mappings
 let g:mundo_mappings = {
     \ '<CR>': 'preview',
@@ -159,6 +167,14 @@ require("mundo").setup({
     preview_statusline = "Mundo Preview",  -- Preview window statusline
     tree_statusline = "Mundo",             -- Tree window statusline
 
+    -- Custom symbols for graph visualization
+    symbols = {
+        current = "@",                 -- Symbol for current undo state
+        node = "o",                    -- Symbol for regular undo states  
+        saved = "w",                   -- Symbol for saved/written states
+        vertical = "|",                -- Symbol for vertical tree lines
+    },
+
     -- Navigation (internal settings)
     map_move_newer = "k",          -- Key to move to newer undo
     map_move_older = "j",          -- Key to move to older undo
@@ -199,6 +215,80 @@ Configuration is applied in this order (later overrides earlier):
 3. `vim.g` variables (highest precedence, matching original vim-mundo behavior)
 
 This allows you to set baseline configuration with `setup()` and override specific options with `vim.g` variables, just like the original vim-mundo plugin.
+
+## Symbol Customization
+
+nvim-mundo allows you to customize the symbols used in the undo tree visualization:
+
+### Default Symbols
+
+- `@` - Current undo state (where you are now)
+- `o` - Regular undo states  
+- `w` - Saved/written states (states where you saved the file)
+- `|` - Vertical tree lines connecting undo states
+
+### Custom Symbol Examples
+
+#### Using vim.g variables:
+```vim
+let g:mundo_symbols = {
+    \ 'current': '★',
+    \ 'node': '●',
+    \ 'saved': '■',
+    \ 'vertical': '│'
+    \ }
+```
+
+#### Using Lua setup:
+```lua
+require("mundo").setup({
+    symbols = {
+        current = "★",        -- Current state
+        node = "●",           -- Regular states
+        saved = "■",          -- Saved states  
+        vertical = "│",       -- Tree lines
+    }
+})
+```
+
+#### Unicode Examples:
+```lua
+-- Fancy Unicode symbols
+symbols = {
+    current = "→",         -- Arrow for current
+    node = "◦",            -- Hollow circle for nodes
+    saved = "◾",          -- Black square for saves
+    vertical = "┆",        -- Dashed vertical line
+}
+
+-- Emoji symbols (fun but may affect alignment)
+symbols = {
+    current = "🔥",        -- Fire for current
+    node = "⚪",           -- White circle for nodes  
+    saved = "💾",          -- Floppy disk for saves
+    vertical = "┃",        -- Thick vertical line
+}
+
+-- ASCII alternatives
+symbols = {
+    current = "C",         -- Simple letter
+    node = "n",            -- Simple letter
+    saved = "S",           -- Simple letter  
+    vertical = "I",        -- Capital I
+}
+```
+
+#### Partial Customization:
+You can customize just some symbols while keeping others as defaults:
+
+```lua
+require("mundo").setup({
+    symbols = {
+        current = "🎯",      -- Only change current symbol
+        -- node, saved, vertical remain default (@, o, w, |)
+    }
+})
+```
 
 ## Differences from vim-mundo
 
@@ -251,7 +341,8 @@ mundo.diff() -- Show diff in split
 - **Better syntax highlighting**: Uses 'diff' filetype for proper syntax highlighting in preview
 - **Modular refactor**: Broke down 1184-line monolith into 8 focused modules for better maintainability
 - **Type annotations**: Added comprehensive lua-language-server type annotations for better IDE support
-- **Unit tests**: Comprehensive test suite with 49+ tests covering all modules
+- **Unit tests**: Comprehensive test suite with 58+ tests covering all modules
+- **Configurable symbols**: Customize tree symbols (@, o, w, |) for personalized visualization
 
 ## Testing
 
@@ -272,6 +363,7 @@ make test-utils       # Utils module tests
 make test-node        # Node module tests
 make test-tree        # Tree module tests
 make test-graph       # Graph module tests
+make test-symbols     # Symbol configuration tests
 make test-integration # Integration tests
 ```
 
@@ -282,7 +374,8 @@ make test-integration # Integration tests
 - **`tests/test_utils.lua`**: Utility functions tests
 - **`tests/test_node.lua`**: Node structure tests
 - **`tests/test_tree.lua`**: Tree data and diff algorithm tests
-- **`tests/test_graph.lua`**: Graph rendering tests
+- **`tests/test_graph.lua`**: Graph rendering tests  
+- **`tests/test_symbols.lua`**: Symbol configuration tests
 - **`tests/test_integration.lua`**: Integration and API tests
 
 ### Test Features

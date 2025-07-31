@@ -124,43 +124,44 @@ function M.generate_graph(nodes_data, verbose, header_lines, first_visible, last
 
         -- Add connector lines between nodes
         if i > 1 then
-            -- Check if we need to show a merge (branch coming back to main line)
-            if curr_depth < prev_depth then
-                -- This is a merge - show |/ pattern
-                local merge_line = ""
-                -- Add spacing for the current depth
-                for d = 0, curr_depth - 1 do
-                    merge_line = merge_line .. "| "
-                end
-                merge_line = merge_line .. "|/"
-                table.insert(tree_lines, { merge_line, "" })
-            else
-                -- Regular connector line
-                -- The connector should be at the depth of the previous node (the one we're connecting from)
-                local connector_line = ""
-                for d = 0, prev_depth - 1 do
-                    connector_line = connector_line .. "| "
-                end
-                connector_line = connector_line .. "|"
-                table.insert(tree_lines, { connector_line, "" })
+        -- Check if we need to show a merge (branch coming back to main line)
+        if curr_depth < prev_depth then
+            -- This is a merge - show |/ pattern
+            local merge_line = ""
+            local cfg = config.get()
+            -- Add spacing for the current depth
+            for d = 0, curr_depth - 1 do
+                merge_line = merge_line .. cfg.symbols.vertical .. " "
             end
-        end
+            merge_line = merge_line .. cfg.symbols.vertical .. "/"
+            table.insert(tree_lines, { merge_line, "" })
+        else
+            -- Regular connector line
+            -- The connector should be at the depth of the previous node (the one we're connecting from)
+            local connector_line = ""
+            local cfg = config.get()
+            for d = 0, prev_depth - 1 do
+                connector_line = connector_line .. cfg.symbols.vertical .. " "
+            end
+            connector_line = connector_line .. cfg.symbols.vertical
+            table.insert(tree_lines, { connector_line, "" })
+        end        end
 
-        -- Add the node itself
-        local node_char = "o"
-        if node.n == current_seq then
-            node_char = "@"
-        elseif node.save then
-            node_char = "w"
-        end
+    -- Add the node itself
+    local cfg = config.get()
+    local node_char = cfg.symbols.node
+    if node.n == current_seq then
+        node_char = cfg.symbols.current
+    elseif node.save then
+        node_char = cfg.symbols.saved
+    end
 
-        -- Build tree line with proper indentation
-        local graph_line = ""
-        for d = 0, curr_depth - 1 do
-            graph_line = graph_line .. "| "
-        end
-        graph_line = graph_line .. node_char
-
+    -- Build tree line with proper indentation
+    local graph_line = ""
+    for d = 0, curr_depth - 1 do
+        graph_line = graph_line .. cfg.symbols.vertical .. " "
+    end
+    graph_line = graph_line .. node_char
         -- Node info
         local time_str = os.date("%H:%M:%S", node.time)
         local info_line = string.format("    [%d] %s", node.n, time_str)

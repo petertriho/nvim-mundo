@@ -69,10 +69,11 @@ function M.show()
             local nodes_data = core.get_nodes_data()
             local current_seq = nodes_data:current()
             local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+            local cfg = config.get()
             for i, line in ipairs(lines) do
-                if line:find("@") then
-                    -- Find the exact position of the @ marker for proper alignment
-                    local marker_pos = line:find("@")
+                if line:find(vim.pesc(cfg.symbols.current)) then
+                    -- Find the exact position of the current marker for proper alignment
+                    local marker_pos = line:find(vim.pesc(cfg.symbols.current))
                     vim.api.nvim_win_set_cursor(0, { i, marker_pos - 1 })
                     break
                 end

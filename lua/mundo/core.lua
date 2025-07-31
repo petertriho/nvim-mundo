@@ -110,10 +110,11 @@ function M.render_graph(force)
 
     -- Position cursor on current node
     local current_seq = state.nodes_data:current()
+    local cfg = config.get()
     for i, line in ipairs(output) do
-        if line:find("@") then
-            -- Find the exact position of the @ marker for proper alignment
-            local marker_pos = line:find("@")
+        if line:find(vim.pesc(cfg.symbols.current)) then
+            -- Find the exact position of the current marker for proper alignment
+            local marker_pos = line:find(vim.pesc(cfg.symbols.current))
             api.nvim_win_set_cursor(0, { i + #header, marker_pos - 1 })
             break
         end
@@ -201,10 +202,13 @@ function M.move(direction, count)
 
     -- Find all lines that contain actual nodes (not just vertical lines)
     local node_lines = {}
+    local cfg = config.get()
+    -- Create pattern for all node markers
+    local marker_pattern = "[" .. vim.pesc(cfg.symbols.current) .. vim.pesc(cfg.symbols.node) .. vim.pesc(cfg.symbols.saved) .. "]"
     for line_num = header_lines + 1, total_lines do
         local line_content = api.nvim_buf_get_lines(0, line_num - 1, line_num, false)[1] or ""
         -- Check if this line contains a node marker (not just a vertical line)
-        if line_content:match("[%[@ow%]]") then
+        if line_content:match(marker_pattern) then
             table.insert(node_lines, line_num)
         end
     end
@@ -230,8 +234,10 @@ function M.move(direction, count)
 
     -- Find the node marker on this line, accounting for branch indentation
     local line = api.nvim_get_current_line()
-    -- Look for the actual node marker (@ o w) after any branch characters (| )
-    local pos = line:find("[@ow]")
+    local cfg = config.get()
+    -- Look for the actual node marker after any branch characters
+    local marker_pattern = "[" .. vim.pesc(cfg.symbols.current) .. vim.pesc(cfg.symbols.node) .. vim.pesc(cfg.symbols.saved) .. "]"
+    local pos = line:find(marker_pattern)
     if pos then
         api.nvim_win_set_cursor(0, { new_line, pos - 1 })
     end

@@ -110,6 +110,7 @@ local function main()
             "tests.test_node",
             "tests.test_tree",
             "tests.test_graph",
+            "tests.test_symbols",
             "tests.test_integration",
         }
 

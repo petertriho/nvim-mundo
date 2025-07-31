@@ -1,6 +1,12 @@
 -- Configuration module for nvim-mundo
 local M = {}
 
+---@class MundoSymbols
+---@field current string Symbol for current undo state (default: "@")
+---@field node string Symbol for regular undo states (default: "o")
+---@field saved string Symbol for saved/written states (default: "w")
+---@field vertical string Symbol for vertical tree lines (default: "|")
+
 ---@class MundoConfig
 ---@field width number Width of graph window (mundo_width)
 ---@field preview_height number Height of preview window (mundo_preview_height)
@@ -25,6 +31,7 @@ local M = {}
 ---@field map_up_down boolean Use arrow keys for navigation
 ---@field autorefresh boolean Enable automatic tree refresh on buffer events (mundo_autorefresh)
 ---@field autorefresh_events table<string> List of events that trigger autorefresh (mundo_autorefresh_events)
+---@field symbols MundoSymbols Configurable symbols for graph rendering (mundo_symbols)
 
 -- Default configuration
 ---@type MundoConfig
@@ -74,6 +81,12 @@ M.defaults = {
     map_up_down = true,
     autorefresh = true,
     autorefresh_events = { "BufRead", "BufNewFile", "BufWritePost" },
+    symbols = {
+        current = "@",
+        node = "o",
+        saved = "w",
+        vertical = "|",
+    },
 }
 
 -- Current configuration (will be merged with user options)
@@ -112,6 +125,7 @@ function M.setup(opts)
         mundo_header = "header",
         mundo_autorefresh = "autorefresh",
         mundo_autorefresh_events = "autorefresh_events",
+        mundo_symbols = "symbols",
     }
 
     -- Apply vim.g settings with highest precedence
