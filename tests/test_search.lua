@@ -44,7 +44,7 @@ test_framework.it("should return empty sorted results for empty matches", functi
     test_framework.assert.equals(#sorted, 0, "Empty matches should return empty sorted results")
 end)
 
-test_framework.it("should sort search results by sequence number", function()
+test_framework.it("should sort search results by sequence number (newest first)", function()
     local nodes_data = tree.NodesData:new()
     local Node = require("mundo.node").Node
     
@@ -57,9 +57,9 @@ test_framework.it("should sort search results by sequence number", function()
     
     local sorted = nodes_data:get_sorted_search_results(matches)
     test_framework.assert.equals(#sorted, 3, "Should have 3 sorted results")
-    test_framework.assert.equals(sorted[1].seq, 1, "First result should be seq 1")
+    test_framework.assert.equals(sorted[1].seq, 5, "First result should be seq 5")
     test_framework.assert.equals(sorted[2].seq, 3, "Second result should be seq 3")
-    test_framework.assert.equals(sorted[3].seq, 5, "Third result should be seq 5")
+    test_framework.assert.equals(sorted[3].seq, 1, "Third result should be seq 1")
 end)
 
 test_framework.it("should handle search with no nodes data", function()
