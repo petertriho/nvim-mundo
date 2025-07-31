@@ -18,6 +18,9 @@ local debounce_timer = nil
 ---@field auto_preview_timer any? Timer for auto preview
 ---@field nodes_data NodesData? The nodes data object
 ---@field current_search string? Current search term
+---@field search_results table<number, {node: Node, matches: number}>? Current search results
+---@field search_sorted {seq: number, node: Node, matches: number}[]? Sorted search results
+---@field search_index number Current index in search results
 ---@field first_visible_line number First visible line in graph
 ---@field last_visible_line number Last visible line in graph
 
@@ -29,6 +32,9 @@ local state = {
     auto_preview_timer = nil,
     nodes_data = nil,
     current_search = nil,
+    search_results = nil,
+    search_sorted = nil,
+    search_index = 0,
     first_visible_line = 0,
     last_visible_line = 0,
 }
@@ -431,6 +437,160 @@ function M.clear_state()
     state.target_buffer = nil
     state.nodes_data = nil
     state.preview_outdated = true
+    state.current_search = nil
+    state.search_results = nil
+    state.search_sorted = nil
+    state.search_index = 0
+end
+
+-- Start a search in the undo history
+---@param pattern? string The search pattern (if nil, prompts user)
+---@param is_regex? boolean Whether the pattern is a regex
+function M.search(pattern, is_regex)
+    if not state.nodes_data then
+        utils.echo("No undo history available", "WarningMsg")
+        return
+    end
+    
+    -- If no pattern provided, prompt the user
+    if not pattern then
+        local input = vim.fn.input("Search undo history: ", state.current_search or "")
+        if input == "" then
+            return
+        end
+        pattern = input
+    end
+    
+    state.current_search = pattern
+    
+    -- Perform the search
+    state.search_results = state.nodes_data:search_history(pattern, is_regex)
+    state.search_sorted = state.nodes_data:get_sorted_search_results(state.search_results)
+    
+    local match_count = #state.search_sorted
+    if match_count == 0 then
+        utils.echo("Pattern not found: " .. pattern, "WarningMsg")
+        state.search_index = 0
+        return
+    end
+    
+    -- Start at the first match
+    state.search_index = 1
+    M.jump_to_search_result(state.search_index)
+    
+    utils.echo(string.format("Search: %d matches found for '%s'", match_count, pattern), "Normal")
+end
+
+-- Jump to a specific search result
+---@param index number The index in the sorted search results
+function M.jump_to_search_result(index)
+    if not state.search_sorted or #state.search_sorted == 0 then
+        utils.echo("No search results available", "WarningMsg")
+        return
+    end
+    
+    index = math.max(1, math.min(#state.search_sorted, index))
+    state.search_index = index
+    
+    local result = state.search_sorted[index]
+    local target_seq = result.seq
+    
+    -- Find the Mundo window
+    local mundo_buf = fn.bufnr("__Mundo__")
+    if mundo_buf ~= -1 then
+        local winnr = fn.bufwinnr(mundo_buf)
+        if winnr ~= -1 then
+            local mundo_win = fn.win_getid(winnr)
+            if api.nvim_win_is_valid(mundo_win) then
+                local current_win = api.nvim_get_current_win()
+                api.nvim_set_current_win(mundo_win)
+                
+                -- Find the line corresponding to the target sequence number
+                local lines = api.nvim_buf_get_lines(0, 0, -1, false)
+                local cfg = config.get()
+                
+                for line_num, line_content in ipairs(lines) do
+                    -- Extract sequence number from line (format: [123])
+                    local seq_match = line_content:match("%[(%d+)%]")
+                    if seq_match and tonumber(seq_match) == target_seq then
+                        -- Find the node marker position on this line
+                        local marker_pattern = "[" .. vim.pesc(cfg.symbols.current) .. vim.pesc(cfg.symbols.node) .. vim.pesc(cfg.symbols.saved) .. "]"
+                        local marker_pos = line_content:find(marker_pattern)
+                        if marker_pos then
+                            api.nvim_win_set_cursor(0, { line_num, marker_pos - 1 })
+                        else
+                            api.nvim_win_set_cursor(0, { line_num, 0 })
+                        end
+                        break
+                    end
+                end
+                
+                -- Update preview
+                state.preview_outdated = true
+                local cfg = config.get()
+                if cfg.auto_preview then
+                    M.render_preview()
+                end
+                
+                -- Don't change focus - stay in Mundo window
+            end
+        end
+    end
+    
+    -- Show current search position
+    utils.echo(string.format("Match %d/%d (%d occurrences in undo %d)", 
+        index, #state.search_sorted, result.matches, result.seq), "Normal")
+end
+
+-- Navigate to the next search match
+function M.search_next()
+    if not state.search_sorted or #state.search_sorted == 0 then
+        utils.echo("No search in progress", "WarningMsg")
+        return
+    end
+    
+    local next_index = state.search_index + 1
+    if next_index > #state.search_sorted then
+        next_index = 1  -- Wrap around to first match
+        utils.echo("Search wrapped to beginning", "Normal")
+    end
+    
+    M.jump_to_search_result(next_index)
+end
+
+-- Navigate to the previous search match
+function M.search_previous()
+    if not state.search_sorted or #state.search_sorted == 0 then
+        utils.echo("No search in progress", "WarningMsg")
+        return
+    end
+    
+    local prev_index = state.search_index - 1
+    if prev_index < 1 then
+        prev_index = #state.search_sorted  -- Wrap around to last match
+        utils.echo("Search wrapped to end", "Normal")
+    end
+    
+    M.jump_to_search_result(prev_index)
+end
+
+-- Clear current search
+function M.clear_search()
+    state.current_search = nil
+    state.search_results = nil
+    state.search_sorted = nil
+    state.search_index = 0
+    utils.echo("Search cleared", "Normal")
+end
+
+-- Get current search status
+---@return string? pattern Current search pattern
+---@return number count Number of matches
+---@return number index Current match index
+function M.get_search_status()
+    return state.current_search, 
+           state.search_sorted and #state.search_sorted or 0,
+           state.search_index
 end
 
 return M

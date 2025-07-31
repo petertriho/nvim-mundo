@@ -141,4 +141,24 @@ function M.diff()
     core.diff()
 end
 
+-- Search functionality
+function M.search()
+    core.search()
+end
+
+-- Navigate to next search match
+function M.search_next()
+    core.search_next()
+end
+
+-- Navigate to previous search match
+function M.search_previous()
+    core.search_previous()
+end
+
+-- Clear current search
+function M.clear_search()
+    core.clear_search()
+end
+
 return M

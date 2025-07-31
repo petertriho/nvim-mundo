@@ -111,6 +111,7 @@ local function main()
             "tests.test_tree",
             "tests.test_graph",
             "tests.test_symbols",
+            "tests.test_search",
             "tests.test_integration",
         }
 

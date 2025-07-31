@@ -502,6 +502,115 @@ function NodesData:preview_diff(node_before, node_after)
     return diff_lines
 end
 
+-- Search for a pattern in the undo history
+---@param pattern string The search pattern (can be a plain string or regex)
+---@param is_regex? boolean Whether the pattern is a regex (default: false)
+---@return table<number, {node: Node, matches: number}> matches Map of sequence numbers to nodes with match count
+function NodesData:search_history(pattern, is_regex)
+    is_regex = is_regex or false
+    local matches = {}
+    
+    if not pattern or pattern == "" then
+        return matches
+    end
+    
+    local target_buffer = require("mundo.core").get_target_buffer()
+    if not target_buffer then
+        return matches
+    end
+    
+    local current_win = api.nvim_get_current_win()
+    if not utils.goto_buffer(target_buffer) then
+        return matches
+    end
+    
+    -- Save current state
+    local current_changenr = fn.changenr()
+    
+    -- Search through each node's content
+    local nodes, nmap = self:make_nodes()
+    
+    for seq, node in pairs(nmap) do
+        -- Get content at this undo state
+        if node.n > 0 then
+            vim.cmd("silent undo " .. node.n)
+        else
+            vim.cmd("silent earlier 999999")
+        end
+        
+        local lines = api.nvim_buf_get_lines(0, 0, -1, false)
+        local match_count = 0
+        
+        -- Search through all lines
+        for _, line in ipairs(lines) do
+            if is_regex then
+                local match_start = 1
+                while match_start do
+                    local start_pos, end_pos = string.find(line, pattern, match_start)
+                    if start_pos then
+                        match_count = match_count + 1
+                        match_start = end_pos + 1
+                    else
+                        break
+                    end
+                end
+            else
+                -- Plain text search (case insensitive)
+                local escaped_pattern = string.lower(pattern):gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+                local line_lower = string.lower(line)
+                local match_start = 1
+                while match_start do
+                    local start_pos = string.find(line_lower, escaped_pattern, match_start, true)
+                    if start_pos then
+                        match_count = match_count + 1
+                        match_start = start_pos + #pattern
+                    else
+                        break
+                    end
+                end
+            end
+        end
+        
+        if match_count > 0 then
+            matches[seq] = {
+                node = node,
+                matches = match_count
+            }
+        end
+    end
+    
+    -- Restore original state
+    if current_changenr > 0 then
+        vim.cmd("silent undo " .. current_changenr)
+    end
+    
+    api.nvim_set_current_win(current_win)
+    
+    return matches
+end
+
+-- Get a sorted list of search results
+---@param matches table<number, {node: Node, matches: number}> Search results from search_history
+---@return {seq: number, node: Node, matches: number}[] sorted_matches Sorted list of matches
+function NodesData:get_sorted_search_results(matches)
+    local sorted_results = {}
+    
+    for seq, match_data in pairs(matches) do
+        table.insert(sorted_results, {
+            seq = seq,
+            node = match_data.node,
+            matches = match_data.matches
+        })
+    end
+    
+    -- Sort by sequence number (reverse chronological order - newest first)
+    table.sort(sorted_results, function(a, b)
+        return a.seq > b.seq
+    end)
+    
+    return sorted_results
+end
+
 -- Reverse the tree by swapping children of all nodes
 ---@param self NodesData
 function NodesData:reverse_tree()

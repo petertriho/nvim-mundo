@@ -1,6 +1,6 @@
 # Makefile for nvim-mundo
 
-.PHONY: test test-unit test-integration test-config test-utils test-node test-tree test-graph test-symbols clean format help
+.PHONY: test test-unit test-integration test-config test-utils test-node test-tree test-graph test-symbols test-search clean format help
 
 # Default target
 help:
@@ -14,6 +14,7 @@ help:
 	@echo "  test-tree      - Run tree module tests"
 	@echo "  test-graph     - Run graph module tests"
 	@echo "  test-symbols   - Run symbols module tests"
+	@echo "  test-search    - Run search module tests"
 	@echo "  format         - Format all Lua files with stylua"
 	@echo "  clean          - Clean test artifacts"
 
@@ -35,6 +36,7 @@ test-unit:
 	@LUA_PATH="$(LUA_PATH)" $(NVIM_CMD) "lua require('tests.run_tests')" -c "qa!" tests.test_tree
 	@LUA_PATH="$(LUA_PATH)" $(NVIM_CMD) "lua require('tests.run_tests')" -c "qa!" tests.test_graph
 	@LUA_PATH="$(LUA_PATH)" $(NVIM_CMD) "lua require('tests.run_tests')" -c "qa!" tests.test_symbols
+	@LUA_PATH="$(LUA_PATH)" $(NVIM_CMD) "lua require('tests.run_tests')" -c "qa!" tests.test_search
 
 # Run integration tests only
 test-integration:
@@ -65,6 +67,10 @@ test-graph:
 test-symbols:
 	@echo "Running symbols module tests..."
 	@LUA_PATH="$(LUA_PATH)" $(NVIM_CMD) "lua require('tests.run_tests')" -c "qa!" tests.test_symbols
+
+test-search:
+	@echo "Running search module tests..."
+	@LUA_PATH="$(LUA_PATH)" $(NVIM_CMD) "lua require('tests.run_tests')" -c "qa!" tests.test_search
 
 # Format all Lua files with stylua
 format:

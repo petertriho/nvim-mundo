@@ -145,6 +145,12 @@ function M.setup_key_mappings(buf)
             map(key, '<cmd>lua require("mundo").play_to()<CR>')
         elseif action == "diff" then
             map(key, '<cmd>lua require("mundo").diff()<CR>')
+        elseif action == "search" then
+            map(key, '<cmd>lua require("mundo").search()<CR>')
+        elseif action == "next_match" then
+            map(key, '<cmd>lua require("mundo").search_next()<CR>')
+        elseif action == "previous_match" then
+            map(key, '<cmd>lua require("mundo").search_previous()<CR>')
         end
     end
 
